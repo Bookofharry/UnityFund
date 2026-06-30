@@ -1,140 +1,175 @@
-# Product & Engineering Principles
+# Principles
 
-Status: Draft
-Version: 0.1
+Status: Active
+Version: 1.0.0
 Project: UnityFund
 Team: Zero Downtime
 Last Updated: 2026-06-27
 
 ---
 
-# Introduction
+# Purpose
 
-These principles guide every product, design, and engineering decision made on UnityFund.
+This document defines the core principles that guide the design, development, and evolution of UnityFund.
 
-Whenever there is uncertainty about a feature, workflow, or technical implementation, these principles should be used as the decision-making framework.
+These principles influence every product decision, architectural decision, and implementation choice.
 
-If a decision violates these principles, it should be challenged before implementation.
-
----
-
-# Principle 1 — Business Before Technology
-
-Technology exists to solve business problems.
-
-Before writing code, we must understand the business process we are trying to improve.
-
-Never build features simply because they are technically interesting.
+When faced with competing approaches, these principles should help determine the preferred direction.
 
 ---
 
-# Principle 2 — Funds Are the Core Business Entity
+# Product Principles
 
-Organizations manage funds, not just payments.
+## Transparency
 
-Every major feature in UnityFund should support the lifecycle of a fund.
+Financial activities should be visible and understandable.
 
-If a feature does not relate to fund management, it should be questioned.
+Organizations should always know:
 
----
+* What has been collected.
+* What remains outstanding.
+* What has been paid out.
+* Who approved important financial actions.
 
-# Principle 3 — Workflows Before Screens
-
-Design the workflow first.
-
-Design the user interface second.
-
-Every screen must represent a real business process.
+Transparency builds trust.
 
 ---
 
-# Principle 4 — Documentation Before Implementation
+## Accountability
 
-Major product decisions should be documented before implementation.
+Every significant financial action should be traceable.
 
-Business logic belongs in documentation before it becomes application logic.
+Examples include:
 
----
+* Payment verification
+* Rule changes
+* Payout approvals
+* Fund configuration changes
+* Administrative actions
 
-# Principle 5 — Automation Over Manual Work
-
-If an organization repeats the same task every collection cycle, UnityFund should automate it where appropriate.
-
-Automation should reduce administrative effort while maintaining transparency and control.
-
----
-
-# Principle 6 — Security Is a Feature
-
-Financial software must be secure by design.
-
-Authentication, authorization, audit logs, webhook verification, and payment integrity are part of the product—not optional additions.
+Auditability is a fundamental platform capability.
 
 ---
 
-# Principle 7 — Build for Trust
+## Simplicity
 
-Organizations trust UnityFund with important financial operations.
+UnityFund should simplify financial management.
 
-Every decision should improve:
+Complex business processes should be automated wherever possible while keeping the user experience intuitive.
 
-* Reliability
-* Transparency
-* Accuracy
-* Accountability
-
-Trust is earned through consistent behavior.
+Users should spend their time managing their organizations rather than learning complicated software.
 
 ---
 
-# Principle 8 — Simplicity Scales
+## Reliability
 
-Simple systems are easier to understand, maintain, and extend.
+The platform should behave predictably.
 
-Avoid unnecessary complexity.
+Financial operations should prioritize:
 
-Build flexible systems through clear business rules rather than complicated implementations.
+* Data consistency
+* Accurate calculations
+* Verified processing
+* Safe retries
+* Controlled state transitions
 
----
-
-# Principle 9 — Evidence Over Assumptions
-
-Product decisions should be based on validated research whenever possible.
-
-Assumptions should be documented, tested, and either validated or rejected.
+Reliability is more important than adding new features quickly.
 
 ---
 
-# Principle 10 — Build for Tomorrow
+## Security
 
-Every design decision should consider future growth.
+Security is a platform responsibility.
 
-UnityFund should be able to support additional fund types, organization types, workflows, and integrations without requiring a complete redesign.
+Authentication, authorization, organization isolation, payment verification, webhook validation, and audit logging should be built into the system rather than treated as optional features.
+
+---
+
+## Scalability
+
+Architecture decisions should support long-term growth.
+
+UnityFund should scale from a single organization to thousands of organizations without fundamental redesign.
+
+Scalability should be achieved through good architecture rather than unnecessary complexity.
+
+---
+
+# Engineering Principles
+
+## Business Before Technology
+
+Technology exists to support business requirements.
+
+Architectural decisions should begin with understanding the business problem before selecting tools or frameworks.
+
+---
+
+## Separation of Responsibilities
+
+Each layer of the application should have a clear responsibility.
+
+Examples:
+
+* Frontend presents information.
+* Backend executes business logic.
+* Business Rules Engine evaluates business decisions.
+* Payment providers execute financial operations.
+* PostgreSQL stores authoritative business data.
+
+---
+
+## Secure by Default
+
+Every new feature should be designed with security in mind.
+
+Default behavior should favor protecting data and preventing unauthorized actions.
+
+---
+
+## Document Important Decisions
+
+Architectural decisions should be captured as ADRs.
+
+This ensures future contributors understand not only what was implemented but also why it was implemented.
+
+---
+
+## Prefer Simplicity
+
+Simple solutions should be preferred unless additional complexity provides clear and measurable value.
+
+The platform should avoid premature optimization and unnecessary abstraction.
+
+---
+
+# Product Philosophy
+
+UnityFund is not simply a payment application.
+
+It is a financial operations platform for organizations.
+
+Payments, collections, approvals, reporting, and fund management are parts of a larger system designed to improve trust, accountability, and operational efficiency.
 
 ---
 
 # Decision Framework
 
-Before implementing any feature, ask:
+When evaluating new ideas, ask:
 
-1. Does it solve a real customer problem?
-2. Does it align with UnityFund's mission?
-3. Does it support the lifecycle of a fund?
-4. Can it be explained clearly?
-5. Will it still make sense as the platform grows?
+1. Does this improve transparency?
+2. Does this improve accountability?
+3. Does this simplify the user experience?
+4. Does this strengthen reliability?
+5. Does this improve security?
+6. Does this support long-term scalability?
 
-If the answer to any of these questions is "No," revisit the design before building.
+If the answer to most of these questions is "yes," the proposal is likely aligned with UnityFund's vision.
 
 ---
 
-# Team Motto
+# Summary
 
-**Blueprint Before Build.**
+These principles define the foundation of UnityFund.
 
-Understand first.
-
-Design second.
-
-Build third.
-
-Improve continuously.
+They guide product strategy, software architecture, implementation decisions, and future evolution, ensuring the platform remains secure, reliable, transparent, and focused on solving real organizational financial challenges.
