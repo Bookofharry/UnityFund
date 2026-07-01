@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Table2, EyeOff, Clock, ArrowRight } from 'lucide-react';
+import { Table2, EyeOff, Clock, ArrowRight, AlertTriangle } from 'lucide-react';
 import { problem } from '../data/landing';
 import { SectionHeading } from '../components/landing/SectionHeading';
 
@@ -59,7 +59,7 @@ export function ProblemSection() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             {problem.before.map(({ label, sub }, i) => (
               <div key={label} className="flex items-center gap-4">
-                <div className="rounded-xl border-2 border-dashed border-red-200 bg-red-50 px-5 py-4 text-center">
+                <div className="w-48 rounded-xl border-2 border-dashed border-red-200 bg-red-50 px-5 py-4 text-center">
                   <p className="text-sm font-semibold text-red-700">{label}</p>
                   <p className="mt-0.5 text-xs text-red-400">{sub}</p>
                 </div>
@@ -69,8 +69,9 @@ export function ProblemSection() {
               </div>
             ))}
           </div>
-          <p className="mt-4 text-center text-sm text-red-400">
-            😓 Fragmented, error-prone, and exhausting — every cycle.
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-red-400 sm:text-sm">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+            Fragmented. Error-prone. Exhausting. Every cycle.
           </p>
         </motion.div>
       </div>

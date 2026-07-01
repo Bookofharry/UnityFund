@@ -25,7 +25,7 @@ export const hero = {
   badge: 'Financial Operations Platform',
   headline: ['Your organization\'s', 'financial operating system.'],
   subheadline:
-    'Stop chasing payments on WhatsApp. UnityFund automates fund collection, reconciles every payment instantly, and gives your entire organization complete financial visibility — from a single dashboard.',
+    "Stop chasing payments on WhatsApp and reconciling bank alerts by hand. UnityFund automates your organization's entire fund lifecycle: collections, reconciliation, approvals, and payouts, all in one dashboard.",
   ctaPrimary: 'Get started free',
   ctaSecondary: 'Watch a 2-min demo',
   stats: [
@@ -68,7 +68,7 @@ export const problem = {
     {
       title: 'Your treasurer works weekends',
       icon: 'Clock',
-      body: 'Collection reconciliation, reminder messages, payment chasing, report preparation — your treasurer is spending hours every week on tasks that should take minutes.',
+      body: 'Reconciliation. Reminders. Payment chasing. Report prep. Your treasurer spends hours every week on tasks that should take minutes.',
     },
   ],
   before: [
@@ -81,7 +81,7 @@ export const problem = {
 export const solution = {
   heading: 'One platform. Every fund. Complete control.',
   subheading:
-    'UnityFund connects your entire fund management workflow — from member onboarding to automated collection, payment reconciliation, and fund-specific payouts.',
+    'UnityFund connects your entire fund management workflow: member onboarding, automated collection, payment reconciliation, and fund-specific payouts.',
   chain: [
     { label: 'Organization', desc: 'Your home base' },
     { label: 'Fund', desc: 'Create any fund type' },
@@ -101,7 +101,7 @@ export const solution = {
 
 export const features = {
   heading: 'Everything your organization needs to manage funds properly',
-  subheading: 'Designed for the people who manage organizational finances — not for accountants.',
+  subheading: 'Designed for the people who manage organizational finances, not for accountants.',
   items: [
     {
       icon: 'Layers',
@@ -268,9 +268,9 @@ export const security = {
     },
   ],
   badges: [
-    '🔐 Bank-grade security',
-    '✓ Nomba-verified payments',
-    '📋 Full audit trails',
+    { icon: 'Shield', label: 'Bank-grade security' },
+    { icon: 'CheckCircle2', label: 'Nomba-verified payments' },
+    { icon: 'ClipboardList', label: 'Full audit trails' },
   ],
 };
 
@@ -339,15 +339,15 @@ export const faq = {
   items: [
     {
       q: 'What exactly is UnityFund?',
-      a: "UnityFund is a financial operating platform for member-based organizations. It helps organizations create fund types, automate recurring collections, reconcile payments, manage member contributions, and execute fund-specific workflows — all from one dashboard. It is not a payment gateway or a digital wallet.",
+      a: "UnityFund is a financial operating platform for member-based organizations. It helps organizations create fund types, automate recurring collections, reconcile payments, manage member contributions, and execute fund-specific workflows, all from one dashboard. It is not a payment gateway or a digital wallet.",
     },
     {
       q: 'Who is UnityFund for?',
-      a: "UnityFund is built for organizations that collect recurring money from members — cooperative societies, staff welfare associations, professional bodies, alumni associations, churches, community groups, and NGOs. If your organization has a treasurer and a WhatsApp payment group, UnityFund was built for you.",
+      a: "UnityFund is built for organizations that collect recurring money from members: cooperative societies, staff welfare associations, professional bodies, alumni associations, churches, community groups, and NGOs. If your organization has a treasurer and a WhatsApp payment group, UnityFund was built for you.",
     },
     {
       q: 'How does payment collection work?',
-      a: "UnityFund collects payments through Nomba's payment infrastructure, which supports Direct Debit, Checkout, and Virtual Accounts. When a member pays, Nomba sends a verified webhook to UnityFund, which automatically reconciles the contribution — no manual intervention required.",
+      a: "UnityFund collects payments through Nomba's payment infrastructure, which supports Direct Debit, Checkout, and Virtual Accounts. When a member pays, Nomba sends a verified webhook to UnityFund, which automatically reconciles the contribution. No manual intervention required.",
     },
     {
       q: "Is our members' financial data secure?",

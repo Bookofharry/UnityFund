@@ -30,6 +30,18 @@ export default {
           800: '#0c1232',
           900: '#070b1f',
         },
+        gold: {
+          50:  '#fdf8ec',
+          100: '#faeecd',
+          200: '#f3dc9b',
+          300: '#eac564',
+          400: '#dfaa3c',
+          500: '#c8912a',
+          600: '#a97620',
+          700: '#8a5d1c',
+          800: '#6f4a1c',
+          900: '#5c3d1b',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -52,6 +64,13 @@ export default {
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        marquee: 'marquee 90s linear infinite',
+      },
+      keyframes: {
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
     },
   },

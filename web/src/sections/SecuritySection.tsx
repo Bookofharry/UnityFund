@@ -91,14 +91,18 @@ export function SecuritySection() {
 
           {/* Trust seals */}
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-            {security.badges.map((badge) => (
-              <span
-                key={badge}
-                className="inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/[0.08] px-5 py-2 text-sm font-semibold text-indigo-300 backdrop-blur-sm"
-              >
-                {badge}
-              </span>
-            ))}
+            {security.badges.map(({ icon, label }) => {
+              const BadgeIcon = getIcon(icon);
+              return (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/[0.08] px-5 py-2 text-sm font-semibold text-indigo-300 backdrop-blur-sm"
+                >
+                  <BadgeIcon className="h-4 w-4 text-indigo-400" strokeWidth={2} aria-hidden="true" />
+                  {label}
+                </span>
+              );
+            })}
           </div>
         </motion.div>
 

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Play, TrendingUp } from 'lucide-react';
 import { hero } from '../data/landing';
 import { DashboardMockup } from '../components/landing/DashboardMockup';
+import { AnimatedHeadline } from '../components/landing/AnimatedHeadline';
+import { FloatingLetters } from '../components/landing/FloatingLetters';
 
 const EASE = [0.21, 0.47, 0.32, 0.98] as [number, number, number, number];
 
@@ -35,30 +37,34 @@ export function HeroSection() {
   return (
     <section
       aria-label="Hero"
-      className="bg-[#f5f7ff] pt-36 pb-20 md:pt-44 md:pb-28"
+      className="relative overflow-hidden bg-[#f5f7ff] pt-36 pb-20 md:pt-44 md:pb-28"
     >
-      <div className="mx-auto max-w-6xl px-6">
+      <FloatingLetters />
+      <div className="relative mx-auto max-w-7xl px-6">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
 
           {/* Left: Copy */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-6">
             {/* Badge */}
             <motion.div {...fadeUp(0)}>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3.5 py-1.5">
+              <motion.div
+                animate={{ rotate: [-15, 15, -15] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3.5 py-1.5"
+              >
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-slow" aria-hidden="true" />
                 <span className="text-xs font-semibold tracking-wide text-indigo-700">
                   {hero.badge}
                 </span>
-              </div>
+              </motion.div>
             </motion.div>
 
             {/* Headline */}
-            <motion.h1 {...fadeUp(0.1)} className="text-display-xl font-black text-navy-800">
-              {hero.headline[0]}{' '}
-              <span className="text-indigo-600">
-                {hero.headline[1]}
-              </span>
-            </motion.h1>
+            <AnimatedHeadline
+              lines={hero.headline as [string, string]}
+              className="text-3xl font-black text-navy-800 sm:text-display-xl"
+              accentClassName="text-indigo-600"
+            />
 
             {/* Subheadline */}
             <motion.p
@@ -98,7 +104,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.45, ease: EASE }}
-            className="relative lg:col-span-7"
+            className="relative lg:col-span-6"
             aria-hidden="true"
           >
             <DashboardMockup />

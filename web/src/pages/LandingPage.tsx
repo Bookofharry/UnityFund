@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Navigation } from '../sections/Navigation';
 import { HeroSection } from '../sections/HeroSection';
 import { TrustedBySection } from '../sections/TrustedBySection';
 import { ProblemSection } from '../sections/ProblemSection';
+import { FeaturesMarquee } from '../sections/FeaturesMarquee';
 import { SolutionSection } from '../sections/SolutionSection';
 import { FeaturesSection } from '../sections/FeaturesSection';
 import { HowItWorksSection } from '../sections/HowItWorksSection';
@@ -14,6 +16,11 @@ import { FinalCTASection } from '../sections/FinalCTASection';
 import { Footer } from '../sections/Footer';
 
 export function LandingPage() {
+  useEffect(() => {
+    document.documentElement.classList.add('scrollbar-hide');
+    return () => document.documentElement.classList.remove('scrollbar-hide');
+  }, []);
+
   return (
     <>
       <a
@@ -30,6 +37,7 @@ export function LandingPage() {
         <HeroSection />
         <TrustedBySection />
         <ProblemSection />
+        <FeaturesMarquee />
         <SolutionSection />
         <FeaturesSection />
         <HowItWorksSection />

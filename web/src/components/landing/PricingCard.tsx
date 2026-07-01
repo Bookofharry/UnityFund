@@ -27,9 +27,8 @@ const SCHEMES = [
     checkBg: 'bg-indigo-100',
     checkColor: 'text-indigo-600',
     featureText: 'text-gray-600',
-    cta: 'bg-indigo-600 text-white shadow-[0_4px_16px_rgba(79,70,229,0.28)] hover:bg-indigo-700',
+    cta: 'bg-indigo-600 text-white hover:bg-indigo-700',
     badgeBg: '',
-    glowLine: false,
     scale: '',
   },
   {
@@ -37,7 +36,6 @@ const SCHEMES = [
     card: [
       'bg-navy-800',
       'ring-1 ring-inset ring-indigo-500/35',
-      'shadow-[0_28px_80px_-12px_rgba(79,70,229,0.3)]',
       'md:scale-[1.05] md:z-10',
     ].join(' '),
     label: 'text-slate-500',
@@ -46,9 +44,8 @@ const SCHEMES = [
     checkBg: 'bg-emerald-400/15',
     checkColor: 'text-emerald-400',
     featureText: 'text-slate-300',
-    cta: 'bg-indigo-500 text-white shadow-[0_4px_18px_rgba(99,102,241,0.35)] hover:bg-indigo-400 hover:shadow-[0_4px_26px_rgba(99,102,241,0.5)]',
+    cta: 'bg-indigo-500 text-white hover:bg-indigo-400',
     badgeBg: 'bg-indigo-500/15 text-indigo-300',
-    glowLine: true,
     scale: '',
   },
   {
@@ -56,7 +53,6 @@ const SCHEMES = [
     card: [
       'bg-navy-900',
       'ring-1 ring-inset ring-emerald-500/20',
-      'shadow-[0_16px_60px_-12px_rgba(16,185,129,0.1)]',
     ].join(' '),
     label: 'text-emerald-500',
     price: 'text-white',
@@ -66,7 +62,6 @@ const SCHEMES = [
     featureText: 'text-slate-300',
     cta: 'border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-400/55',
     badgeBg: '',
-    glowLine: false,
     scale: '',
   },
 ] as const;
@@ -82,13 +77,6 @@ export function PricingCard({ name, price, period, badge, features, cta, index }
       transition={{ duration: 0.55, delay: index * 0.1, ease: EASE }}
       className={`relative flex flex-col rounded-2xl px-8 py-10 ${s.card}`}
     >
-      {/* Pro top-edge glow line */}
-      {s.glowLine && (
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-indigo-400/65 to-transparent"
-        />
-      )}
 
       {/* Badge */}
       {badge && (
