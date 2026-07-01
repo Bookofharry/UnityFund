@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- UnityFund mark: two overlapping circles suggesting unity -->
+  <circle cx="11" cy="16" r="9" fill="#4f46e5"/>
+  <circle cx="21" cy="16" r="9" fill="#1a2b6e"/>
+  <circle cx="16" cy="16" r="5.5" fill="#818cf8"/>
+</svg>
