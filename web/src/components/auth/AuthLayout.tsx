@@ -159,10 +159,22 @@ export function AuthLayout({
       {/* Right: form */}
       <div className="flex w-full flex-col justify-center px-6 py-16 lg:w-[46%] lg:px-16">
         <div className="mx-auto w-full max-w-md">
-          <CinematicLabel
-            text="Access Account"
-            className="font-mono text-xs font-bold uppercase tracking-[0.32em] text-indigo-600"
-          />
+          <motion.div {...fadeUp(0)} className="lg:hidden">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <LogoMark />
+              <span className="text-xl font-bold text-navy-800">UnityFund</span>
+            </Link>
+          </motion.div>
+
+          <div className="hidden lg:block">
+            <CinematicLabel
+              text="Access Account"
+              className="font-mono text-xs font-bold uppercase tracking-[0.32em] text-indigo-600"
+            />
+          </div>
 
           <motion.div {...fadeUp(0.08)} className="mt-10">
             <h1 className="text-2xl font-bold text-navy-800">{title}</h1>
