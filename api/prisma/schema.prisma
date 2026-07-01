@@ -1,0 +1,529 @@
+// UnityFund — Prisma Schema
+// Version: 2.0 (matches docs/database/schema.md v2.0)
+// ADR-009: All monetary values stored as integers in Kobo (smallest NGN unit)
+// ADR-010: organization_id present on all tenant-scoped tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════
+
+enum UserStatus {
+  active
+  inactive
+  deleted
+}
+
+enum OrganizationType {
+  cooperative
+  welfare_association
+  alumni_association
+  professional_association
+  other
+}
+
+enum OrganizationStatus {
+  active
+  inactive
+  archived
+}
+
+enum OrgMemberRole {
+  member
+  treasurer
+  approver
+  organization_admin
+  platform_admin
+}
+
+enum OrgMemberStatus {
+  active
+  inactive
+  suspended
+  removed
+}
+
+enum FundType {
+  annual_dues
+  savings_fund
+  welfare_fund
+  emergency_fund
+  building_fund
+  rotational_savings
+  investment_fund
+}
+
+enum FundStatus {
+  draft
+  active
+  inactive
+  archived
+}
+
+enum ContributionFrequency {
+  daily
+  weekly
+  monthly
+  quarterly
+  annually
+}
+
+// ADR-011 Fix 2: Payout trigger is a first-class enum on fund_rules
+enum PayoutTrigger {
+  all_paid
+  cycle_closed
+  threshold_percentage
+}
+
+enum FundMemberStatus {
+  active
+  inactive
+  removed
+}
+
+enum CycleStatus {
+  draft
+  active
+  closed
+  cancelled
+}
+
+enum ContributionStatus {
+  pending
+  partial
+  paid
+  failed
+  overdue
+  cancelled
+}
+
+enum PaymentMethod {
+  direct_debit
+  checkout
+  virtual_account
+  tokenized_card
+  manual
+}
+
+enum PaymentStatus {
+  initiated
+  pending
+  successful
+  failed
+  reversed
+  cancelled
+  pending_review
+}
+
+enum MandateStatus {
+  pending
+  active
+  suspended
+  deleted
+  expired
+}
+
+// ADR-007: Payout states match state transition document
+enum PayoutStatus {
+  draft
+  pending_approval
+  approved
+  processing
+  successful
+  failed
+  cancelled
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+  cancelled
+}
+
+enum BankAccountStatus {
+  active
+  inactive
+}
+
+enum WebhookEventStatus {
+  received
+  processing
+  processed
+  failed
+  ignored
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODELS
+// ═══════════════════════════════════════════════════════════════
+
+model User {
+  id           String     @id @default(uuid())
+  firstName    String
+  lastName     String
+  email        String     @unique
+  passwordHash String
+  phone        String?
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  orgMemberships      OrgMember[]
+  passwordResetTokens PasswordResetToken[]
+  notifications       Notification[]
+  sentInvitations     Invitation[]        @relation("InvitedBy")
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model Organization {
+  id               String             @id @default(uuid())
+  name             String
+  organizationType OrganizationType
+  email            String
+  phone            String?
+  status           OrganizationStatus @default(active)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  members       OrgMember[]
+  funds         Fund[]
+  invitations   Invitation[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("organizations")
+}
+
+model OrgMember {
+  id             String          @id @default(uuid())
+  organizationId String
+  userId         String
+  role           OrgMemberRole   @default(member)
+  status         OrgMemberStatus @default(active)
+  joinedAt       DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  fundMembers  FundMember[]
+  mandates     Mandate[]
+  bankAccounts BankAccount[]
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+model Fund {
+  id             String     @id @default(uuid())
+  organizationId String
+  name           String
+  fundType       FundType
+  description    String?
+  status         FundStatus @default(draft)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  rules            FundRule?
+  members          FundMember[]
+  collectionCycles CollectionCycle[]
+  payouts          Payout[]
+
+  @@map("funds")
+}
+
+model FundRule {
+  id                    String                @id @default(uuid())
+  fundId                String                @unique
+  // ADR-009: contributionAmount stored in Kobo (integer)
+  contributionAmount    Int
+  contributionFrequency ContributionFrequency
+  collectionDay         Int?
+  startDate             DateTime?
+  endDate               DateTime?
+  allowPartialPayment   Boolean               @default(false)
+  payoutAllowed         Boolean               @default(false)
+  // ADR-011 Fix 2: payout trigger is now a first-class field
+  payoutTrigger         PayoutTrigger?
+  payoutThresholdPct    Int?
+  approvalRequired      Boolean               @default(false)
+  penaltyEnabled        Boolean               @default(false)
+  rulesJson             Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  fund Fund @relation(fields: [fundId], references: [id])
+
+  @@map("fund_rules")
+}
+
+model FundMember {
+  id               String           @id @default(uuid())
+  fundId           String
+  orgMemberId      String
+  // ADR-011 Fix 1: rotation_position for rotational_savings ordering
+  // Nullable. Required only for rotational_savings funds.
+  // Partial unique index enforced in migration SQL:
+  //   UNIQUE (fund_id, rotation_position) WHERE rotation_position IS NOT NULL
+  rotationPosition Int?
+  status           FundMemberStatus @default(active)
+  joinedAt         DateTime         @default(now())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  fund            Fund           @relation(fields: [fundId], references: [id])
+  orgMember       OrgMember      @relation(fields: [orgMemberId], references: [id])
+  contributions   Contribution[]
+  receivedPayouts Payout[]       @relation("PayoutRecipient")
+
+  @@unique([fundId, orgMemberId])
+  @@map("fund_members")
+}
+
+model CollectionCycle {
+  id          String      @id @default(uuid())
+  fundId      String
+  name        String
+  cycleNumber Int
+  startDate   DateTime
+  endDate     DateTime
+  status      CycleStatus @default(draft)
+
+  // ADR-011 Fix 3: Fund rules snapshot (populated at draft → active, never updated after)
+  // All cycle-level business logic MUST read from these fields, not from live fund_rules.
+  // Partial unique index enforced in migration SQL:
+  //   UNIQUE (fund_id) WHERE status = 'active'
+  snapshotContributionAmount    Int?
+  snapshotContributionFrequency ContributionFrequency?
+  snapshotAllowPartialPayment   Boolean?
+  snapshotPayoutTrigger         PayoutTrigger?
+  snapshotPayoutThresholdPct    Int?
+  snapshotApprovalRequired      Boolean?
+  snapshotRulesJson             Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fund          Fund           @relation(fields: [fundId], references: [id])
+  contributions Contribution[]
+
+  @@map("collection_cycles")
+}
+
+model Contribution {
+  id                String             @id @default(uuid())
+  collectionCycleId String
+  fundMemberId      String
+  // ADR-009: All amounts in Kobo
+  expectedAmount    Int
+  paidAmount        Int                @default(0)
+  status            ContributionStatus @default(pending)
+  dueDate           DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  collectionCycle CollectionCycle @relation(fields: [collectionCycleId], references: [id])
+  fundMember      FundMember      @relation(fields: [fundMemberId], references: [id])
+  payments        Payment[]
+
+  @@unique([collectionCycleId, fundMemberId])
+  @@map("contributions")
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  contributionId    String
+  // Denormalized for efficient querying without multi-table joins
+  organizationId    String
+  fundId            String
+  // ADR-009: amount in Kobo
+  amount            Int
+  currency          String        @default("NGN")
+  paymentMethod     PaymentMethod
+  provider          String        @default("nomba")
+  providerReference String?
+  // ADR-008: providerEventId is the idempotency key for webhook deduplication
+  providerEventId   String?       @unique
+  status            PaymentStatus @default(initiated)
+  paidAt            DateTime?
+  rawPayload        Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  contribution Contribution @relation(fields: [contributionId], references: [id])
+
+  // ADR-008: unique(provider, providerReference) prevents duplicate payment records
+  @@unique([provider, providerReference])
+  @@map("payments")
+}
+
+model Mandate {
+  id                String                @id @default(uuid())
+  orgMemberId       String
+  provider          String                @default("nomba")
+  providerMandateId String?
+  status            MandateStatus         @default(pending)
+  // ADR-009: maxAmount in Kobo
+  maxAmount         Int
+  frequency         ContributionFrequency
+  startDate         DateTime
+  endDate           DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  orgMember OrgMember @relation(fields: [orgMemberId], references: [id])
+
+  @@map("mandates")
+}
+
+model Payout {
+  id                String       @id @default(uuid())
+  fundId            String
+  recipientId       String
+  // ADR-009: amount in Kobo
+  amount            Int
+  currency          String       @default("NGN")
+  provider          String       @default("nomba")
+  providerReference String?
+  // ADR-007: payout statuses match state transition doc
+  status            PayoutStatus @default(draft)
+  reason            String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  paidAt            DateTime?
+  rawPayload        Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  fund      Fund       @relation(fields: [fundId], references: [id])
+  recipient FundMember @relation("PayoutRecipient", fields: [recipientId], references: [id])
+
+  @@map("payouts")
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  userId         String
+  organizationId String
+  title          String
+  message        String
+  type           String
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  actorUserId    String
+  entityType     String
+  entityId       String
+  action         String
+  description    String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  actor        User         @relation(fields: [actorUserId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// ─── ADR-011 Fix 4: Invitation table with token hash ─────────────────────────
+model Invitation {
+  id             String           @id @default(uuid())
+  organizationId String
+  invitedByUserId String
+  email          String
+  role           OrgMemberRole
+  // ADR-011: token stored as SHA-256 hash only. Raw token sent in email only.
+  tokenHash      String           @unique
+  status         InvitationStatus @default(pending)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invitedBy    User         @relation("InvitedBy", fields: [invitedByUserId], references: [id])
+
+  // Partial unique index enforced in migration SQL:
+  //   UNIQUE (organization_id, email) WHERE status = 'pending'
+
+  @@map("invitations")
+}
+
+// ─── ADR-011 Fix 5: Password reset tokens ────────────────────────────────────
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  // ADR-011: token stored as SHA-256 hash only. Raw token sent in email only.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("password_reset_tokens")
+}
+
+// ─── ADR-011 Fix 6: Bank accounts for payout transfers ───────────────────────
+model BankAccount {
+  id            String            @id @default(uuid())
+  orgMemberId   String
+  accountName   String?
+  // Stored as String to preserve leading zeros (common in Nigerian account numbers)
+  accountNumber String
+  bankCode      String
+  bankName      String
+  isVerified    Boolean           @default(false)
+  isDefault     Boolean           @default(false)
+  status        BankAccountStatus @default(active)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  orgMember OrgMember @relation(fields: [orgMemberId], references: [id])
+
+  @@unique([orgMemberId, accountNumber, bankCode])
+  @@map("bank_accounts")
+}
+
+// ─── ADR-011 Fix 8: Webhook events durability table ──────────────────────────
+model WebhookEvent {
+  id                 String             @id @default(uuid())
+  provider           String
+  eventType          String
+  providerEventId    String
+  rawPayload         Json
+  signatureHeader    String?
+  status             WebhookEventStatus @default(received)
+  processingAttempts Int                @default(0)
+  errorMessage       String?
+  receivedAt         DateTime           @default(now())
+  processedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // ADR-008: unique(provider, providerEventId) is the idempotency key
+  @@unique([provider, providerEventId])
+  @@map("webhook_events")
+}
