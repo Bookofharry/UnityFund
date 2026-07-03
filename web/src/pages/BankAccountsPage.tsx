@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { orgsApi } from '../api/organizations';
 import { bankAccountsApi, BankAccount } from '../api/bank-accounts';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 const NIGERIAN_BANKS = [
   { code: '044', name: 'Access Bank' },
@@ -44,6 +45,7 @@ const EMPTY_FORM: AddAccountForm = { accountNumber: '', bankCode: '', bankName: 
 export function BankAccountsPage() {
   const { activeOrg } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<AddAccountForm>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -66,23 +68,31 @@ export function BankAccountsPage() {
 
   const addMutation = useMutation({
     mutationFn: (data: AddAccountForm) => bankAccountsApi.register(activeOrg!.id, memberId!, data),
-    onSuccess: () => { setShowForm(false); setForm(EMPTY_FORM); setFormError(''); invalidate(); },
-    onError: (e: Error) => setFormError(e.message),
+    onSuccess: () => {
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+      invalidate();
+      toast.success('Bank account added.');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Failed to add bank account.'),
   });
 
   const verifyMutation = useMutation({
     mutationFn: (accountId: string) => bankAccountsApi.verify(activeOrg!.id, accountId),
-    onSuccess: invalidate,
+    onSuccess: () => { invalidate(); toast.success('Bank account verified.'); },
+    onError: (err) => toast.error(getErrorMessage(err, 'Verification failed.')),
   });
 
   const defaultMutation = useMutation({
     mutationFn: (accountId: string) => bankAccountsApi.setDefault(activeOrg!.id, accountId),
-    onSuccess: invalidate,
+    onSuccess: () => { invalidate(); toast.success('Default account updated.'); },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   const removeMutation = useMutation({
     mutationFn: (accountId: string) => bankAccountsApi.remove(activeOrg!.id, accountId),
-    onSuccess: invalidate,
+    onSuccess: () => { invalidate(); toast.success('Bank account removed.'); },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   function handleBankCodeChange(code: string) {

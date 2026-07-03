@@ -6,6 +6,7 @@ import { orgsApi } from '../api/organizations';
 import { mandatesApi, Mandate } from '../api/mandates';
 import { formatKobo, formatDate } from '../lib/format';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 const FREQUENCIES = [
   { value: 'daily', label: 'Daily' },
@@ -36,10 +37,10 @@ const EMPTY_FORM: SetupForm = { maxAmountNaira: '', frequency: 'monthly', startD
 export function MandatesPage() {
   const { activeOrg } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<SetupForm>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   // Get current user's org member ID
   const { data: orgData, isLoading: orgLoading } = useQuery({
@@ -63,22 +64,25 @@ export function MandatesPage() {
     onSuccess: () => {
       setShowForm(false);
       setForm(EMPTY_FORM);
-      setFormError('');
       invalidate();
-      setSuccessMessage('Mandate created. Your bank will send a confirmation code to the phone number on file — approve it there to activate the mandate.');
-      setTimeout(() => setSuccessMessage(''), 8000);
+      toast.success(
+        'Mandate created. Your bank will send a confirmation code to the phone number on file — approve it there to activate the mandate.',
+        8000,
+      );
     },
     onError: (e: Error) => setFormError(e.message),
   });
 
   const suspendMutation = useMutation({
     mutationFn: (mandateId: string) => mandatesApi.suspend(activeOrg!.id, mandateId),
-    onSuccess: invalidate,
+    onSuccess: () => { invalidate(); toast.success('Mandate suspended.'); },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   const cancelMutation = useMutation({
     mutationFn: (mandateId: string) => mandatesApi.cancel(activeOrg!.id, mandateId),
-    onSuccess: invalidate,
+    onSuccess: () => { invalidate(); toast.success('Mandate cancelled.'); },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   function handleSubmit(e: React.FormEvent) {
@@ -117,10 +121,6 @@ export function MandatesPage() {
           </button>
         )}
       </div>
-
-      {successMessage && (
-        <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{successMessage}</div>
-      )}
 
       {/* Setup form */}
       {showForm && (

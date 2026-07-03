@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { contributionsApi, Contribution } from '../api/contributions';
 import { formatKobo, formatDate } from '../lib/format';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -13,6 +14,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function ContributionsPage() {
   const { activeOrg } = useAuth();
+  const toast = useToast();
 
   const { data: contributions = [], isLoading, isError } = useQuery({
     queryKey: ['contributions', activeOrg?.id],
@@ -24,8 +26,13 @@ export function ContributionsPage() {
     mutationFn: (contributionId: string) =>
       contributionsApi.initiatePayment(activeOrg!.id, contributionId, { paymentMethod: 'checkout' }),
     onSuccess: (data) => {
-      if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+      if (data.checkoutUrl) {
+        window.open(data.checkoutUrl, '_blank');
+      } else {
+        toast.error('Payment could not be initiated. Please try again.');
+      }
     },
+    onError: (err) => toast.error(getErrorMessage(err, 'Failed to initiate payment.')),
   });
 
   if (!activeOrg) return null;

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/format';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 interface Notification {
   id: string;
@@ -14,6 +15,7 @@ interface Notification {
 
 export function NotificationsPage() {
   const qc = useQueryClient();
+  const toast = useToast();
 
   const { data: notifications = [], isLoading, isError } = useQuery({
     queryKey: ['notifications'],
@@ -23,11 +25,13 @@ export function NotificationsPage() {
   const markReadMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onError: (err) => toast.error(getErrorMessage(err, 'Failed to mark notification as read.')),
   });
 
   const markAllMutation = useMutation({
     mutationFn: () => api.post('/notifications/read-all'),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onError: (err) => toast.error(getErrorMessage(err, 'Failed to mark notifications as read.')),
   });
 
   const unread = notifications.filter((n: Notification) => !n.readAt).length;
