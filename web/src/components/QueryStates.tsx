@@ -1,12 +1,9 @@
+import { BrandedLoaderBlock } from './BrandedLoader';
+
 // Tiny reusable components for the three data-fetching states every page needs.
 
 export function LoadingState({ message = 'Loading...' }: { message?: string }) {
-  return (
-    <div className="mt-12 flex flex-col items-center gap-3 text-gray-400">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-500" aria-hidden="true" />
-      <p className="text-sm">{message}</p>
-    </div>
-  );
+  return <BrandedLoaderBlock message={message} size="sm" />;
 }
 
 export function ErrorState({ message }: { message?: string }) {

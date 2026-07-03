@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { paymentsApi } from '../api/payments';
 import { formatKobo } from '../lib/format';
+import { BrandedLoader } from '../components/BrandedLoader';
 
 const POLL_INTERVAL = 2000;
 const TIMEOUT_MS = 90_000;
@@ -148,7 +149,9 @@ export function PaymentCallbackPage() {
 function Spinner({ label, sublabel }: { label: string; sublabel?: string }) {
   return (
     <>
-      <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-500" />
+      <div className="mx-auto mb-4 flex justify-center">
+        <BrandedLoader size="lg" />
+      </div>
       <p className="font-medium text-gray-700">{label}</p>
       {sublabel && <p className="mt-1 text-sm text-gray-400">{sublabel}</p>}
     </>
