@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fundsApi, Fund } from '../api/funds';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
+import { hasRole, ORG_MANAGER_ROLES } from '../lib/roles';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 const FUND_TYPE_LABELS: Record<string, string> = {
   annual_dues: 'Annual Dues',
@@ -26,10 +28,10 @@ export function FundsPage() {
   const { activeOrg } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const isAdmin = ['organization_admin', 'treasurer', 'platform_admin'].includes(activeOrg?.role ?? '');
+  const toast = useToast();
+  const isAdmin = hasRole(activeOrg?.role, ORG_MANAGER_ROLES);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', fundType: 'savings_fund', description: '' });
-  const [error, setError] = useState('');
 
   const { data: funds = [], isLoading, isError } = useQuery({
     queryKey: ['funds', activeOrg?.id],
@@ -39,14 +41,14 @@ export function FundsPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => fundsApi.create(activeOrg!.id, data),
-    onSuccess: () => {
+    onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ['funds', activeOrg?.id] });
       setShowCreate(false);
       setForm({ name: '', fundType: 'savings_fund', description: '' });
-      setError('');
+      toast.success(`"${created.name}" fund created.`);
     },
     onError: (err: unknown) => {
-      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Failed to create fund');
+      toast.error(getErrorMessage(err, 'Failed to create fund'));
     },
   });
 
@@ -67,7 +69,6 @@ export function FundsPage() {
       {isAdmin && showCreate && (
         <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-800">Create Fund</h2>
-          {error && <div className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
           <div className="space-y-3">
             <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Fund name" className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />

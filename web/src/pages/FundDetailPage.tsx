@@ -7,6 +7,8 @@ import { fundMembersApi, FundMember } from '../api/fund-members';
 import { orgsApi } from '../api/organizations';
 import { formatKobo, formatDate } from '../lib/format';
 import { LoadingState, ErrorState } from '../components/QueryStates';
+import { hasRole, ORG_MANAGER_ROLES, FINANCE_ROLES } from '../lib/roles';
+import { useToast } from '../context/ToastContext';
 
 const CYCLE_STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700',
@@ -95,8 +97,12 @@ export function FundDetailPage() {
   const { fundId } = useParams<{ fundId: string }>();
   const { activeOrg } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
   const orgId = activeOrg!.id;
-  const isAdmin = ['organization_admin', 'treasurer', 'platform_admin'].includes(activeOrg?.role ?? '');
+  // Fund rules (create/configure) are Org Admin + Platform Admin only — backend restricts this too.
+  const canManageRules = hasRole(activeOrg?.role, ORG_MANAGER_ROLES);
+  // Collection cycle start/close/create is still Treasurer-inclusive, unchanged.
+  const canManageCycles = hasRole(activeOrg?.role, FINANCE_ROLES);
 
   const { data: fund, isLoading: fundLoading, isError: fundError } = useQuery({
     queryKey: ['fund', orgId, fundId],
@@ -138,7 +144,9 @@ export function FundDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fund', orgId, fundId] });
       setShowRulesForm(false);
+      toast.success('Fund rules saved.');
     },
+    onError: (err) => toast.error(getMutationError(err)),
   });
 
   // Cycle form
@@ -154,17 +162,27 @@ export function FundDetailPage() {
       qc.invalidateQueries({ queryKey: ['cycles', orgId, fundId] });
       setShowCreateCycle(false);
       setCycleForm({ name: '', cycleNumber: 1, startDate: '', endDate: '' });
+      toast.success('Collection cycle created.');
     },
+    onError: (err) => toast.error(getMutationError(err)),
   });
 
   const startCycleMutation = useMutation({
     mutationFn: (cycleId: string) => fundsApi.startCycle(orgId, fundId!, cycleId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cycles', orgId, fundId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cycles', orgId, fundId] });
+      toast.success('Cycle started.');
+    },
+    onError: (err) => toast.error(getMutationError(err)),
   });
 
   const closeCycleMutation = useMutation({
     mutationFn: (cycleId: string) => fundsApi.closeCycle(orgId, fundId!, cycleId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cycles', orgId, fundId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cycles', orgId, fundId] });
+      toast.success('Cycle closed.');
+    },
+    onError: (err) => toast.error(getMutationError(err)),
   });
 
   if (fundLoading) return <LoadingState />;
@@ -187,7 +205,7 @@ export function FundDetailPage() {
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">Fund Rules</h2>
-          {isAdmin && hasRules && !showRulesForm && (
+          {canManageRules && hasRules && !showRulesForm && (
             <button onClick={openRulesForm}
               className="text-sm text-indigo-600 hover:text-indigo-800">
               Edit rules
@@ -200,9 +218,9 @@ export function FundDetailPage() {
             <p className="text-sm font-medium text-amber-800">No rules configured yet</p>
             <p className="mt-1 text-sm text-amber-700">
               Fund rules define contribution amounts, frequency, and payout settings.
-              {isAdmin ? ' You must configure rules before creating a collection cycle.' : ' Contact your administrator to configure fund rules.'}
+              {canManageRules ? ' You must configure rules before creating a collection cycle.' : ' Contact your administrator to configure fund rules.'}
             </p>
-            {isAdmin && (
+            {canManageRules && (
               <button onClick={openRulesForm}
                 className="mt-3 rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700">
                 Configure rules →
@@ -255,12 +273,6 @@ export function FundDetailPage() {
             onSubmit={(e) => { e.preventDefault(); rulesMutation.mutate(); }}
             className="mt-4 space-y-4"
           >
-            {rulesMutation.isError && (
-              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-                {getMutationError(rulesMutation.error)}
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -374,7 +386,7 @@ export function FundDetailPage() {
       <div>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800">Collection Cycles</h2>
-          {isAdmin && hasRules && (
+          {canManageCycles && hasRules && (
             <button
               onClick={() => setShowCreateCycle(true)}
               disabled={showCreateCycle}
@@ -385,18 +397,13 @@ export function FundDetailPage() {
           )}
         </div>
 
-        {isAdmin && !hasRules && (
+        {canManageRules && !hasRules && (
           <p className="mt-2 text-sm text-amber-700">Configure fund rules above before creating a collection cycle.</p>
         )}
 
         {showCreateCycle && (
           <div className="mt-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h3 className="mb-3 font-medium text-gray-800">New Collection Cycle</h3>
-            {createCycleMutation.isError && (
-              <div className="mb-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-                {getMutationError(createCycleMutation.error)}
-              </div>
-            )}
             <div className="grid grid-cols-2 gap-3">
               <input value={cycleForm.name} onChange={(e) => setCycleForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Cycle name (e.g. June 2026)"
@@ -428,9 +435,9 @@ export function FundDetailPage() {
         <div className="mt-4 space-y-3">
           {cycles.length === 0 ? (
             <p className="text-sm text-gray-400">
-              {isAdmin && hasRules
+              {canManageCycles && hasRules
                 ? 'No collection cycles yet. Create your first one above.'
-                : isAdmin
+                : canManageRules
                 ? 'Configure fund rules before creating a collection cycle.'
                 : 'No collection cycles have been started yet.'}
             </p>
@@ -445,14 +452,14 @@ export function FundDetailPage() {
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CYCLE_STATUS_COLORS[cycle.status] ?? 'bg-gray-100'}`}>
                     {CYCLE_STATUS_LABELS[cycle.status] ?? cycle.status}
                   </span>
-                  {isAdmin && cycle.status === 'draft' && (
+                  {canManageCycles && cycle.status === 'draft' && (
                     <button onClick={() => startCycleMutation.mutate(cycle.id)}
                       disabled={startCycleMutation.isPending}
                       className="rounded-md bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60">
                       Start
                     </button>
                   )}
-                  {isAdmin && cycle.status === 'active' && (
+                  {canManageCycles && cycle.status === 'active' && (
                     <button onClick={() => closeCycleMutation.mutate(cycle.id)}
                       disabled={closeCycleMutation.isPending}
                       className="rounded-md bg-gray-600 px-2 py-1 text-xs font-medium text-white hover:bg-gray-700 disabled:opacity-60">
@@ -461,12 +468,6 @@ export function FundDetailPage() {
                   )}
                 </div>
               </div>
-              {startCycleMutation.isError && (
-                <p className="mt-2 text-xs text-red-600" role="alert">{getMutationError(startCycleMutation.error)}</p>
-              )}
-              {closeCycleMutation.isError && (
-                <p className="mt-2 text-xs text-red-600" role="alert">{getMutationError(closeCycleMutation.error)}</p>
-              )}
               {cycle.progress && (
                 <div className="mt-3">
                   <div className="mb-1 flex justify-between text-xs text-gray-500">

@@ -103,7 +103,11 @@ export class PaymentService {
 
       if (data.paymentMethod === 'direct_debit') {
         const mandate = await prisma.mandate.findFirst({
-          where: { id: data.mandateId, orgMember: { organizationId: orgId }, status: 'active' },
+          where: {
+            id: data.mandateId,
+            status: 'active',
+            orgMember: { organizationId: orgId, userId: actorUserId },
+          },
         });
         if (!mandate) throw new AppError(404, 'Active mandate not found');
 
@@ -135,36 +139,62 @@ export class PaymentService {
   }
 
   async confirmPayment(paymentId: string, amountPaid: number): Promise<void> {
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId },
-      select: { id: true, contributionId: true, status: true },
-    });
-    if (!payment) return;
-    if (payment.status === 'successful') return; // idempotent
+    let contributionId: string | undefined;
 
     await prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { id: paymentId },
+      // Atomic, conditional status flip: a second delivery of the same webhook
+      // (or a reprocessing retry) that arrives after this already succeeded
+      // affects 0 rows and becomes a no-op, instead of racing a read-then-write.
+      const updateResult = await tx.payment.updateMany({
+        where: { id: paymentId, status: { notIn: ['successful', 'reversed', 'cancelled'] } },
         data: { status: 'successful', paidAt: new Date() },
       });
+      if (updateResult.count === 0) return;
 
-      const contribution = await tx.contribution.findUnique({
-        where: { id: payment.contributionId },
-        select: { id: true, expectedAmount: true, paidAmount: true, status: true },
+      const payment = await tx.payment.findUnique({
+        where: { id: paymentId },
+        select: { contributionId: true },
       });
-      if (!contribution) return;
+      if (!payment) return;
+      contributionId = payment.contributionId;
 
-      const newPaid = contribution.paidAmount + amountPaid;
-      const newStatus = newPaid >= contribution.expectedAmount ? 'paid' : 'partial';
+      // Best-effort pre-read for diagnostics only — the actual credit below is
+      // capped atomically in the same UPDATE, so a stale read here can produce
+      // an imprecise warning log at worst, never an incorrect credit.
+      const before = await tx.contribution.findUnique({
+        where: { id: contributionId },
+        select: { expectedAmount: true, paidAmount: true },
+      });
+      if (!before) return;
+      const amountDue = Math.max(0, before.expectedAmount - before.paidAmount);
+      if (amountPaid > amountDue) {
+        logger.warn({ paymentId, contributionId, amountPaid, amountDue },
+          'Webhook payment amount exceeds amount owed — capping credit to amount due');
+      }
 
+      // Atomic, capped increment: LEAST() computes the cap in the database at
+      // write time, so two payments confirming concurrently on the same
+      // contribution can't both read a stale "amount due" and jointly overshoot it.
+      const rows = await tx.$queryRaw<{ id: string; paidAmount: number; expectedAmount: number }[]>`
+        UPDATE contributions
+        SET "paidAmount" = LEAST("expectedAmount", "paidAmount" + ${amountPaid}), "updatedAt" = NOW()
+        WHERE id = ${contributionId}
+        RETURNING id, "paidAmount", "expectedAmount"
+      `;
+      const updated = rows[0];
+      if (!updated) return;
+
+      const newStatus = updated.paidAmount >= updated.expectedAmount ? 'paid' : 'partial';
       await tx.contribution.update({
-        where: { id: payment.contributionId },
-        data: { paidAmount: newPaid, status: newStatus, paidAt: newStatus === 'paid' ? new Date() : undefined },
+        where: { id: updated.id },
+        data: { status: newStatus, paidAt: newStatus === 'paid' ? new Date() : undefined },
       });
     });
 
     // BRE evaluation outside transaction
-    await bre.onPaymentConfirmed(payment.contributionId);
+    if (contributionId) {
+      await bre.onPaymentConfirmed(contributionId);
+    }
   }
 
   async list(orgId: string, filters: { fundId?: string; contributionId?: string }) {

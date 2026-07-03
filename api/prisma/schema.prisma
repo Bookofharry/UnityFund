@@ -140,6 +140,7 @@ enum PayoutStatus {
   successful
   failed
   cancelled
+  reversed
 }
 
 enum InvitationStatus {
@@ -311,6 +312,7 @@ model CollectionCycle {
   snapshotPayoutTrigger         PayoutTrigger?
   snapshotPayoutThresholdPct    Int?
   snapshotApprovalRequired      Boolean?
+  snapshotPayoutAllowed         Boolean?
   snapshotRulesJson             Json?
 
   createdAt DateTime @default(now())
@@ -318,6 +320,7 @@ model CollectionCycle {
 
   fund          Fund           @relation(fields: [fundId], references: [id])
   contributions Contribution[]
+  payouts       Payout[]
 
   @@map("collection_cycles")
 }
@@ -393,6 +396,11 @@ model Payout {
   id                String       @id @default(uuid())
   fundId            String
   recipientId       String
+  // Set when this payout originates from an auto-closed collection cycle (BRE).
+  // Manually-created payouts (PayoutService.create) leave this null.
+  // Partial unique index enforced in migration SQL:
+  //   UNIQUE (collection_cycle_id) WHERE collection_cycle_id IS NOT NULL
+  collectionCycleId String?
   // ADR-009: amount in Kobo
   amount            Int
   currency          String       @default("NGN")
@@ -408,8 +416,9 @@ model Payout {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  fund      Fund       @relation(fields: [fundId], references: [id])
-  recipient FundMember @relation("PayoutRecipient", fields: [recipientId], references: [id])
+  fund            Fund             @relation(fields: [fundId], references: [id])
+  recipient       FundMember       @relation("PayoutRecipient", fields: [recipientId], references: [id])
+  collectionCycle CollectionCycle? @relation(fields: [collectionCycleId], references: [id])
 
   @@map("payouts")
 }

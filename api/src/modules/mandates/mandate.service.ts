@@ -1,13 +1,18 @@
+import type { OrgMemberRole } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../lib/errors';
 import { auditLog } from '../../services/audit.service';
 import { nombaClient } from '../../lib/nomba';
 import { env } from '../../config/env';
 import { logger } from '../../lib/logger';
+import { assertOwnerOrElevated } from '../../lib/authz';
 import type { InitiateMandateDtoType } from './mandate.dto';
+
+type CallerMembership = { id: string; role: OrgMemberRole };
 
 const MANDATE_SELECT = {
   id: true,
+  orgMemberId: true,
   provider: true,
   providerMandateId: true,
   status: true,
@@ -20,7 +25,7 @@ const MANDATE_SELECT = {
 };
 
 export class MandateService {
-  async initiate(orgId: string, orgMemberId: string, actorId: string, data: InitiateMandateDtoType) {
+  async initiate(orgId: string, orgMemberId: string, actorId: string, data: InitiateMandateDtoType, caller: CallerMembership) {
     // Nomba's mandate API requires the customer's bank account + profile
     // details upfront (no hosted consent-URL flow) — reuse their already
     // verified default bank account (same one used for payouts).
@@ -32,6 +37,7 @@ export class MandateService {
       },
     });
     if (!member) throw new AppError(404, 'Organization member not found');
+    assertOwnerOrElevated(caller, orgMemberId);
 
     const bankAccount = member.bankAccounts[0];
     if (!bankAccount) {
@@ -89,12 +95,13 @@ export class MandateService {
     return { mandate, setupUrl: '' };
   }
 
-  async list(orgId: string, orgMemberId: string) {
+  async list(orgId: string, orgMemberId: string, caller: CallerMembership) {
     // Validate member belongs to org
     const member = await prisma.orgMember.findFirst({
       where: { id: orgMemberId, organizationId: orgId },
     });
     if (!member) throw new AppError(404, 'Organization member not found');
+    assertOwnerOrElevated(caller, orgMemberId);
 
     return prisma.mandate.findMany({
       where: { orgMemberId, status: { not: 'deleted' } },
@@ -103,7 +110,7 @@ export class MandateService {
     });
   }
 
-  async findById(orgId: string, mandateId: string) {
+  async findById(orgId: string, mandateId: string, caller: CallerMembership) {
     const mandate = await prisma.mandate.findFirst({
       where: {
         id: mandateId,
@@ -112,11 +119,12 @@ export class MandateService {
       select: MANDATE_SELECT,
     });
     if (!mandate) throw new AppError(404, 'Mandate not found');
+    assertOwnerOrElevated(caller, mandate.orgMemberId);
     return mandate;
   }
 
-  async suspend(orgId: string, mandateId: string, actorId: string) {
-    const mandate = await this.findById(orgId, mandateId);
+  async suspend(orgId: string, mandateId: string, actorId: string, caller: CallerMembership) {
+    const mandate = await this.findById(orgId, mandateId, caller);
     if (mandate.status !== 'active') {
       throw new AppError(400, `Cannot suspend a mandate with status '${mandate.status}'`);
     }
@@ -136,8 +144,8 @@ export class MandateService {
     return updated;
   }
 
-  async cancel(orgId: string, mandateId: string, actorId: string) {
-    const mandate = await this.findById(orgId, mandateId);
+  async cancel(orgId: string, mandateId: string, actorId: string, caller: CallerMembership) {
+    const mandate = await this.findById(orgId, mandateId, caller);
     if (!['pending', 'active', 'suspended'].includes(mandate.status)) {
       throw new AppError(400, `Cannot cancel a mandate with status '${mandate.status}'`);
     }

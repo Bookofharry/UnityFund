@@ -22,17 +22,18 @@ class BusinessRulesEngine {
         snapshotPayoutTrigger: true,
         snapshotPayoutThresholdPct: true,
         snapshotApprovalRequired: true,
+        // H5: payoutAllowed must be read from the cycle's own snapshot, not
+        // the live fund rule — a rule change after this cycle started must
+        // not retroactively affect it.
+        snapshotPayoutAllowed: true,
         fund: {
-          select: {
-            organizationId: true,
-            rules: { select: { payoutAllowed: true } },
-          },
+          select: { organizationId: true },
         },
       },
     });
 
     if (!cycle) return;
-    if (!cycle.fund.rules?.payoutAllowed || !cycle.snapshotPayoutTrigger) return;
+    if (!cycle.snapshotPayoutAllowed || !cycle.snapshotPayoutTrigger) return;
 
     const trigger = cycle.snapshotPayoutTrigger;
 
@@ -69,11 +70,9 @@ class BusinessRulesEngine {
           select: {
             fundId: true,
             snapshotPayoutTrigger: true,
+            snapshotPayoutAllowed: true,
             fund: {
-              select: {
-                organizationId: true,
-                rules: { select: { payoutAllowed: true } },
-              },
+              select: { organizationId: true },
             },
           },
         },
@@ -82,7 +81,7 @@ class BusinessRulesEngine {
 
     if (!contribution) return;
     const cycle = contribution.collectionCycle;
-    if (!cycle.fund.rules?.payoutAllowed) return;
+    if (!cycle.snapshotPayoutAllowed) return;
     if (cycle.snapshotPayoutTrigger !== 'all_paid') return;
 
     const [total, paid] = await Promise.all([

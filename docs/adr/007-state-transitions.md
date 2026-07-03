@@ -171,6 +171,7 @@ processing
 successful
 failed
 cancelled
+reversed
 ```
 
 Allowed transitions:
@@ -185,9 +186,15 @@ processing → successful
 processing → failed
 failed → processing
 approved → cancelled
+successful → reversed
 ```
 
 A payout must not move directly from `draft` to `successful`.
+
+`successful → reversed` handles a `payout_refund` webhook arriving after the
+payout has already been confirmed paid — the money moved and was then pulled
+back by the provider. `reversed` is terminal; a reversed payout is not retried
+automatically.
 
 ---
 

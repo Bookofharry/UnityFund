@@ -19,6 +19,7 @@ const CYCLE_SELECT = {
   snapshotPayoutTrigger: true,
   snapshotPayoutThresholdPct: true,
   snapshotApprovalRequired: true,
+  snapshotPayoutAllowed: true,
   createdAt: true,
   updatedAt: true,
 };
@@ -69,6 +70,7 @@ export class CollectionCycleService {
             snapshotPayoutTrigger: rules.payoutTrigger,
             snapshotPayoutThresholdPct: rules.payoutThresholdPct,
             snapshotApprovalRequired: rules.approvalRequired,
+            snapshotPayoutAllowed: rules.payoutAllowed,
             snapshotRulesJson: rules.rulesJson ?? Prisma.DbNull,
           },
           select: CYCLE_SELECT,

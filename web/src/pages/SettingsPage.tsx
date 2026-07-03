@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { orgsApi } from '../api/organizations';
 import { LoadingState } from '../components/QueryStates';
+import { hasRole, ORG_MANAGER_ROLES } from '../lib/roles';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 const ORG_TYPES: Record<string, string> = {
   cooperative: 'Cooperative Society',
@@ -15,6 +17,7 @@ const ORG_TYPES: Record<string, string> = {
 export function SettingsPage() {
   const { activeOrg, setSession } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
   const orgId = activeOrg?.id ?? '';
 
   const { data: orgData, isLoading } = useQuery({
@@ -24,7 +27,6 @@ export function SettingsPage() {
   });
 
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (orgData?.organization) {
@@ -51,15 +53,16 @@ export function SettingsPage() {
           authApi.me().then((u) => setSession(u, token))
         );
       }
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      toast.success('Changes saved.');
     },
+    onError: (err) => toast.error(getErrorMessage(err, 'Update failed.')),
   });
 
   if (!activeOrg) return null;
   if (isLoading) return <LoadingState />;
 
   const org = orgData?.organization;
+  const canEdit = hasRole(activeOrg.role, ORG_MANAGER_ROLES);
 
   return (
     <div className="space-y-8">
@@ -77,61 +80,67 @@ export function SettingsPage() {
           Status: <span className="font-medium text-gray-600">{org?.status}</span>
         </p>
 
-        {updateMutation.isError && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            {(updateMutation.error as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Update failed.'}
-          </div>
+        {canEdit ? (
+          <>
+            <form
+              onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
+              className="space-y-4"
+            >
+              <div>
+                <label htmlFor="org-name" className="block text-sm font-medium text-gray-700">Organization name</label>
+                <input
+                  id="org-name"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="org-email" className="block text-sm font-medium text-gray-700">Contact email</label>
+                <input
+                  id="org-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="org-phone" className="block text-sm font-medium text-gray-700">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  id="org-phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+234 800 000 0000"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+              </button>
+            </form>
+          </>
+        ) : (
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-sm font-medium text-gray-700">Organization name</dt>
+              <dd className="mt-1 text-sm text-gray-600">{org?.name}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-700">Contact email</dt>
+              <dd className="mt-1 text-sm text-gray-600">{org?.email || '—'}</dd>
+            </div>
+            <p className="text-xs text-gray-400">Only organization admins can edit these details.</p>
+          </dl>
         )}
-
-        {saved && (
-          <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">Changes saved.</div>
-        )}
-
-        <form
-          onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }}
-          className="space-y-4"
-        >
-          <div>
-            <label htmlFor="org-name" className="block text-sm font-medium text-gray-700">Organization name</label>
-            <input
-              id="org-name"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="org-email" className="block text-sm font-medium text-gray-700">Contact email</label>
-            <input
-              id="org-email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="org-phone" className="block text-sm font-medium text-gray-700">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
-            <input
-              id="org-phone"
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder="+234 800 000 0000"
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={updateMutation.isPending}
-            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {updateMutation.isPending ? 'Saving…' : 'Save changes'}
-          </button>
-        </form>
       </div>
 
       {/* Org ID */}

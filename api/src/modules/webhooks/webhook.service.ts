@@ -68,6 +68,8 @@ function extractAmountKobo(data: Record<string, unknown> | undefined): number | 
   return nombaAmountToKobo(rawAmount);
 }
 
+type HandlerResult = { ok: true } | { ok: false; reason: string };
+
 export class WebhookService {
   async processNomba(rawBody: Buffer, signatureHeader: string, timestamp: string): Promise<void> {
     // The signature is computed over specific field values, not the raw bytes —
@@ -77,6 +79,11 @@ export class WebhookService {
     // Step 1: Signature verification
     const valid = nombaClient.verifyWebhookSignature(payload, timestamp, signatureHeader);
     if (!valid) {
+      // Defensive: the signature is hashed using payload.event_type, but Nomba's own
+      // docs disagree on the field name (see the eventType fallback chain below).
+      // If this ever fires in production, the logged keys tell us the real field name
+      // without having to guess — do not change the hashed field without that evidence.
+      logger.warn({ payloadKeys: Object.keys(payload) }, 'Webhook signature verification failed');
       throw Object.assign(new Error('Invalid webhook signature'), { statusCode: 401 });
     }
 
@@ -119,6 +126,31 @@ export class WebhookService {
     });
   }
 
+  // H2: nothing else re-scans webhook_events rows stuck at 'failed' — a crash
+  // mid-processing (or a real transient failure) would otherwise lose that
+  // event's effect forever. Called on a periodic sweep from index.ts.
+  // Capped at 5 attempts so payloads that will never succeed (bad data,
+  // permanently missing reference) don't loop indefinitely.
+  async reprocessFailed(): Promise<void> {
+    const events = await prisma.webhookEvent.findMany({
+      where: { status: 'failed', processingAttempts: { lt: 5 } },
+      orderBy: { receivedAt: 'asc' },
+      take: 50,
+    });
+
+    for (const event of events) {
+      try {
+        await this.routeEvent(event.id, event.eventType, event.rawPayload as Record<string, unknown>);
+      } catch (err) {
+        logger.error({ err, eventId: event.id, eventType: event.eventType }, 'Webhook reprocess attempt failed');
+        await prisma.webhookEvent.update({
+          where: { id: event.id },
+          data: { status: 'failed', errorMessage: (err as Error).message },
+        }).catch(() => {});
+      }
+    }
+  }
+
   private async routeEvent(eventId: string, rawEventType: string, payload: Record<string, unknown>): Promise<void> {
     await prisma.webhookEvent.update({
       where: { id: eventId },
@@ -128,48 +160,58 @@ export class WebhookService {
     const eventType = normalizeEventType(rawEventType);
     const data = payload.data as Record<string, unknown> | undefined;
 
+    let result: HandlerResult = { ok: true };
+
     switch (eventType) {
       case 'payment_success':
       case 'checkout_order_paid':
       case 'checkout_payment_successful':
-        await this.handlePaymentResult(eventType, data, true);
+        result = await this.handlePaymentResult(eventType, data, true);
         break;
       case 'payment_failed':
       case 'checkout_payment_failed':
       case 'checkout_order_failed':
       case 'payment_reversal':
-        await this.handlePaymentResult(eventType, data, false);
+        result = await this.handlePaymentResult(eventType, data, false);
         break;
       case 'mandate_debit_success':
       case 'mandate_debit_successful':
-        await this.handlePaymentResult(eventType, data, true);
+        result = await this.handlePaymentResult(eventType, data, true);
         break;
       case 'mandate_debit_failed':
-        await this.handlePaymentResult(eventType, data, false);
+        result = await this.handlePaymentResult(eventType, data, false);
         break;
       case 'payout_success':
       case 'transfer_success':
       case 'transfer_successful':
-        await this.handleTransferResult(data, true);
+        result = await this.handleTransferResult(data, true);
         break;
       case 'payout_failed':
       case 'transfer_failed':
-        await this.handleTransferResult(data, false);
+        result = await this.handleTransferResult(data, false);
         break;
       case 'payout_refund':
-        await this.handleTransferResult(data, false);
+        result = await this.handlePayoutReversal(data);
         break;
       case 'mandate_activated':
       case 'mandate_suspended':
       case 'mandate_deleted':
       case 'mandate_expired':
-        await this.handleMandateLifecycle(eventType, data);
+        result = await this.handleMandateLifecycle(eventType, data);
         break;
       case 'virtual_account_funded':
         logger.info({ data }, 'Webhook: virtual_account.funded received — not used by UnityFund yet');
         break;
       default:
         logger.info({ eventType: rawEventType }, 'Webhook: unrecognized event type — ignored');
+    }
+
+    if (!result.ok) {
+      await prisma.webhookEvent.update({
+        where: { id: eventId },
+        data: { status: 'failed', errorMessage: result.reason },
+      });
+      return;
     }
 
     await prisma.webhookEvent.update({
@@ -184,13 +226,13 @@ export class WebhookService {
     normalizedEventType: string,
     data: Record<string, unknown> | undefined,
     success: boolean,
-  ): Promise<void> {
+  ): Promise<HandlerResult> {
     const references = extractReferenceCandidates(data);
     const amountKobo = extractAmountKobo(data);
 
     if (references.length === 0) {
       logger.warn({ data }, 'Webhook: payment event missing reference — cannot reconcile');
-      return;
+      return { ok: false, reason: 'missing_reference' };
     }
 
     const payment = await prisma.payment.findFirst({
@@ -205,31 +247,39 @@ export class WebhookService {
 
     if (!payment) {
       logger.warn({ references }, 'Webhook: no matching payment found for references');
-      return;
+      return { ok: false, reason: 'payment_not_found' };
     }
 
     if (success) {
       if (this.requiresCheckoutVerification(normalizedEventType)) {
         const verified = await this.verifySuccessfulPayment(data);
-        if (!verified) return;
+        if (!verified) return { ok: false, reason: 'provider_verification_failed' };
       }
 
       if (!amountKobo) {
         logger.warn({ references, data }, 'Webhook: success event missing amount — cannot confirm payment');
-        return;
+        return { ok: false, reason: 'missing_amount' };
       }
 
       await paymentService.confirmPayment(payment.id, amountKobo);
-    } else if (!success) {
+    } else {
       await prisma.payment.updateMany({
         where: { id: payment.id, status: { in: ['initiated', 'pending'] } },
         data: { status: 'failed' },
       });
     }
+
+    return { ok: true };
   }
 
+  // M3: direct-debit success events get the same Nomba-side amount/status
+  // verification checkout events already require — the webhook signature
+  // doesn't cover the amount field, so this is the only check on it.
   private requiresCheckoutVerification(normalizedEventType: string): boolean {
-    return ['payment_success', 'checkout_order_paid', 'checkout_payment_successful'].includes(normalizedEventType);
+    return [
+      'payment_success', 'checkout_order_paid', 'checkout_payment_successful',
+      'mandate_debit_success', 'mandate_debit_successful',
+    ].includes(normalizedEventType);
   }
 
   private async verifySuccessfulPayment(data: Record<string, unknown> | undefined): Promise<boolean> {
@@ -257,9 +307,9 @@ export class WebhookService {
     return false;
   }
 
-  private async handleMandateLifecycle(normalizedEventType: string, data: Record<string, unknown> | undefined): Promise<void> {
+  private async handleMandateLifecycle(normalizedEventType: string, data: Record<string, unknown> | undefined): Promise<HandlerResult> {
     const mandateReference = (data?.mandateReference ?? data?.mandateId) as string | undefined;
-    if (!mandateReference) return;
+    if (!mandateReference) return { ok: false, reason: 'missing_mandate_reference' };
 
     const statusMap: Record<string, string> = {
       mandate_activated: 'active',
@@ -269,20 +319,25 @@ export class WebhookService {
     };
 
     const newStatus = statusMap[normalizedEventType];
-    if (newStatus) {
-      await prisma.mandate.updateMany({
-        where: { providerMandateId: mandateReference },
-        data: { status: newStatus as 'active' | 'suspended' | 'deleted' | 'expired' },
-      });
-      logger.info({ mandateReference, newStatus }, 'Webhook: mandate status updated');
+    if (!newStatus) return { ok: false, reason: 'unknown_mandate_event' };
+
+    const result = await prisma.mandate.updateMany({
+      where: { providerMandateId: mandateReference },
+      data: { status: newStatus as 'active' | 'suspended' | 'deleted' | 'expired' },
+    });
+    if (result.count === 0) {
+      logger.warn({ mandateReference }, 'Webhook: mandate lifecycle event matched no mandate');
+      return { ok: false, reason: 'mandate_not_found' };
     }
+    logger.info({ mandateReference, newStatus }, 'Webhook: mandate status updated');
+    return { ok: true };
   }
 
-  private async handleTransferResult(data: Record<string, unknown> | undefined, success: boolean): Promise<void> {
+  private async handleTransferResult(data: Record<string, unknown> | undefined, success: boolean): Promise<HandlerResult> {
     const references = extractReferenceCandidates(data);
-    if (references.length === 0) return;
+    if (references.length === 0) return { ok: false, reason: 'missing_reference' };
 
-    await prisma.payout.updateMany({
+    const result = await prisma.payout.updateMany({
       where: {
         status: 'processing',
         OR: [
@@ -292,6 +347,30 @@ export class WebhookService {
       },
       data: success ? { status: 'successful', paidAt: new Date() } : { status: 'failed' },
     });
+    if (result.count === 0) return { ok: false, reason: 'payout_not_found' };
+    return { ok: true };
+  }
+
+  // M2: a reversal arriving after the payout already transitioned to
+  // 'successful' previously matched handleTransferResult's status:'processing'
+  // filter and was silently dropped. Handle it as its own transition instead.
+  private async handlePayoutReversal(data: Record<string, unknown> | undefined): Promise<HandlerResult> {
+    const references = extractReferenceCandidates(data);
+    if (references.length === 0) return { ok: false, reason: 'missing_reference' };
+
+    const result = await prisma.payout.updateMany({
+      where: {
+        status: 'successful',
+        OR: [
+          ...references.map((reference) => ({ providerReference: reference })),
+          ...references.map((reference) => ({ id: reference })),
+        ],
+      },
+      data: { status: 'reversed' },
+    });
+    if (result.count === 0) return { ok: false, reason: 'no_successful_payout_matched' };
+    logger.info({ references }, 'Webhook: payout marked reversed');
+    return { ok: true };
   }
 }
 

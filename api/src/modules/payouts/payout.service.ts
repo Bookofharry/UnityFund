@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../lib/errors';
 import { nombaClient } from '../../lib/nomba';
@@ -89,23 +90,32 @@ export class PayoutService {
     let recipientId: string;
 
     if (cycle.fund.fundType === 'rotational_savings') {
-      // Find next rotation position: max(successful payout recipients' positions) + 1, or start at 1
+      // C4: look at the single most recent payout for this fund (any status,
+      // not just 'successful') to decide the next rotation position.
+      // "Retain position" policy: a payout that hasn't reached 'successful'
+      // yet (still in-flight, or failed/cancelled) means that position gets
+      // retried on the next trigger, not skipped past.
       const lastPayout = await prisma.payout.findFirst({
         where: {
           fundId: cycle.fund.id,
-          status: 'successful',
           recipient: { rotationPosition: { not: null } },
         },
         orderBy: { createdAt: 'desc' },
         include: { recipient: { select: { rotationPosition: true } } },
       });
 
-      const lastPosition = lastPayout?.recipient.rotationPosition ?? 0;
       const activeMemberCount = await prisma.fundMember.count({
         where: { fundId: cycle.fund.id, status: 'active', rotationPosition: { not: null } },
       });
+      if (activeMemberCount === 0) {
+        logger.warn({ cycleId }, 'BRE: no rotation-eligible fund members found');
+        return;
+      }
 
-      const nextPosition = (lastPosition % activeMemberCount) + 1;
+      const nextPosition = !lastPayout || lastPayout.status === 'successful'
+        ? ((lastPayout?.recipient.rotationPosition ?? 0) % activeMemberCount) + 1
+        : lastPayout.recipient.rotationPosition!;
+
       const nextRecipient = await prisma.fundMember.findFirst({
         where: { fundId: cycle.fund.id, status: 'active', rotationPosition: nextPosition },
       });
@@ -126,18 +136,30 @@ export class PayoutService {
       recipientId = firstMember.id;
     }
 
-    const rules = await prisma.fundRule.findUnique({ where: { fundId: cycle.fund.id } });
-    const payout = await prisma.payout.create({
-      data: {
-        fundId: cycle.fund.id,
-        recipientId,
-        amount: totalCollected,
-        reason: `Auto-generated payout from cycle: ${cycle.name}`,
-        status: rules?.approvalRequired ? 'pending_approval' : 'approved',
-      },
-    });
+    try {
+      // H5: read the cycle's OWN rule snapshot, never the live FundRule — an
+      // in-progress cycle must not be affected by rule changes made after it started.
+      const payout = await prisma.payout.create({
+        data: {
+          fundId: cycle.fund.id,
+          // C3: partial unique index on collectionCycleId rejects a second
+          // payout for the same cycle if this is triggered concurrently.
+          collectionCycleId: cycle.id,
+          recipientId,
+          amount: totalCollected,
+          reason: `Auto-generated payout from cycle: ${cycle.name}`,
+          status: cycle.snapshotApprovalRequired ? 'pending_approval' : 'approved',
+        },
+      });
 
-    logger.info({ payoutId: payout.id, cycleId, amount: totalCollected }, 'BRE: payout created from cycle');
+      logger.info({ payoutId: payout.id, cycleId, amount: totalCollected }, 'BRE: payout created from cycle');
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        logger.info({ cycleId }, 'BRE: payout already exists for this cycle — skipping duplicate');
+        return;
+      }
+      throw err;
+    }
   }
 
   async approve(orgId: string, payoutId: string, actorId: string, note?: string) {

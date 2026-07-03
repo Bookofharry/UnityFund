@@ -1,9 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PlatformAdminRoute } from './components/PlatformAdminRoute';
 import { AppShell } from './components/AppShell';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { BrandedLoaderBlock } from './components/BrandedLoader';
+import { ToastContainer } from './components/ToastContainer';
 
 // Route-level code splitting — each page becomes its own JS chunk
 const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
@@ -24,65 +28,83 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ defa
 const PaymentCallbackPage = lazy(() => import('./pages/PaymentCallbackPage').then((m) => ({ default: m.PaymentCallbackPage })));
 const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage').then((m) => ({ default: m.BankAccountsPage })));
 const MandatesPage = lazy(() => import('./pages/MandatesPage').then((m) => ({ default: m.MandatesPage })));
+const AdminShell = lazy(() => import('./components/AdminShell').then((m) => ({ default: m.AdminShell })));
+const AdminOrganizationsPage = lazy(() => import('./pages/admin/AdminOrganizationsPage').then((m) => ({ default: m.AdminOrganizationsPage })));
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })));
 
 function RouteLoader() {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-500" aria-hidden="true" />
-    </div>
-  );
+  return <BrandedLoaderBlock message="" size="lg" fullScreen />;
 }
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ErrorBoundary>
-          <Suspense fallback={<RouteLoader />}>
-            <Routes>
-              {/* Public marketing page */}
-              <Route path="/" element={<LandingPage />} />
+        <ToastProvider>
+          <ErrorBoundary>
+            <ToastContainer />
+            <Suspense fallback={<RouteLoader />}>
+              <Routes>
+                {/* Public marketing page */}
+                <Route path="/" element={<LandingPage />} />
 
-              {/* Public auth routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                {/* Public auth routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-              {/* Protected standalone — no AppShell sidebar */}
-              <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+                {/* Protected standalone — no AppShell sidebar */}
+                <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
-              {/* Public invitation acceptance */}
-              <Route path="/invite/:token" element={<InviteAcceptPage />} />
+                {/* Public invitation acceptance */}
+                <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
-              {/* Payment callback — standalone, no sidebar */}
-              <Route path="/payments/callback" element={<ProtectedRoute><PaymentCallbackPage /></ProtectedRoute>} />
+                {/* Payment callback — standalone, no sidebar */}
+                <Route path="/payments/callback" element={<ProtectedRoute><PaymentCallbackPage /></ProtectedRoute>} />
 
-              {/* Protected app routes */}
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <AppShell />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/funds" element={<FundsPage />} />
-                <Route path="/funds/:fundId" element={<FundDetailPage />} />
-                <Route path="/contributions" element={<ContributionsPage />} />
-                <Route path="/members" element={<MembersPage />} />
-                <Route path="/payouts" element={<PayoutsPage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/bank-accounts" element={<BankAccountsPage />} />
-                <Route path="/mandates" element={<MandatesPage />} />
-              </Route>
+                {/* Protected app routes */}
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppShell />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/funds" element={<FundsPage />} />
+                  <Route path="/funds/:fundId" element={<FundDetailPage />} />
+                  <Route path="/contributions" element={<ContributionsPage />} />
+                  <Route path="/members" element={<MembersPage />} />
+                  <Route path="/payouts" element={<PayoutsPage />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/bank-accounts" element={<BankAccountsPage />} />
+                  <Route path="/mandates" element={<MandatesPage />} />
+                </Route>
 
-              {/* Default redirect */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+                {/* Platform admin — dedicated login, fully separate from org auth */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+
+                {/* Platform admin routes — separate shell, separate guard */}
+                <Route
+                  path="/admin"
+                  element={
+                    <PlatformAdminRoute>
+                      <AdminShell />
+                    </PlatformAdminRoute>
+                  }
+                >
+                  <Route index element={<Navigate to="/admin/organizations" replace />} />
+                  <Route path="organizations" element={<AdminOrganizationsPage />} />
+                </Route>
+
+                {/* Default redirect */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

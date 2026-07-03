@@ -32,6 +32,9 @@ const envSchema = z.object({
   PASSWORD_RESET_EXPIRES_HOURS: z.coerce.number().default(1),
 
   APP_URL: z.string().default('http://localhost:5173'),
+
+  // H2: periodic sweep re-processing webhook_events stuck in 'failed'
+  WEBHOOK_REPROCESS_INTERVAL_MS: z.coerce.number().default(5 * 60 * 1000),
 });
 
 const parsed = envSchema.safeParse(process.env);

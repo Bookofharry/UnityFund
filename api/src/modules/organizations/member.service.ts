@@ -14,6 +14,19 @@ const MEMBER_SELECT = {
 };
 
 export class MemberService {
+  /** Blocks demoting/suspending the last remaining active organization_admin — would orphan the org. */
+  private async assertNotLastAdmin(orgId: string, memberId: string) {
+    const target = await prisma.orgMember.findUnique({ where: { id: memberId }, select: { role: true } });
+    if (target?.role !== 'organization_admin') return;
+
+    const remaining = await prisma.orgMember.count({
+      where: { organizationId: orgId, role: 'organization_admin', status: 'active', id: { not: memberId } },
+    });
+    if (remaining === 0) {
+      throw new AppError(400, 'Cannot remove the last active Organization Admin from this organization', 'LAST_ADMIN');
+    }
+  }
+
   async list(orgId: string) {
     return prisma.orgMember.findMany({
       where: { organizationId: orgId, status: { not: 'removed' } },
@@ -36,6 +49,7 @@ export class MemberService {
       where: { id: memberId, organizationId: orgId, status: { not: 'removed' } },
     });
     if (!member) throw new AppError(404, 'Member not found');
+    if (data.role !== 'organization_admin') await this.assertNotLastAdmin(orgId, memberId);
 
     const updated = await prisma.orgMember.update({
       where: { id: memberId },
@@ -54,6 +68,7 @@ export class MemberService {
       where: { id: memberId, organizationId: orgId, status: { not: 'removed' } },
     });
     if (!member) throw new AppError(404, 'Member not found');
+    if (data.status !== 'active') await this.assertNotLastAdmin(orgId, memberId);
 
     const updated = await prisma.orgMember.update({
       where: { id: memberId },

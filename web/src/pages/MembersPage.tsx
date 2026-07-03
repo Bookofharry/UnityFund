@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { orgsApi, OrgMember } from '../api/organizations';
 import { invitationsApi, Invitation } from '../api/invitations';
 import { LoadingState, ErrorState } from '../components/QueryStates';
+import { hasRole, ORG_MANAGER_ROLES } from '../lib/roles';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 const ROLE_OPTIONS = ['member', 'treasurer', 'approver', 'organization_admin'];
 const ROLE_LABELS: Record<string, string> = {
@@ -22,21 +24,16 @@ const ROLE_COLORS: Record<string, string> = {
 
 type Tab = 'members' | 'invitations';
 
-function getMutationError(err: unknown) {
-  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Action failed.';
-}
-
 export function MembersPage() {
   const { activeOrg } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
   const orgId = activeOrg?.id ?? '';
-  const isAdmin = activeOrg?.role === 'organization_admin' || activeOrg?.role === 'platform_admin';
+  const isAdmin = hasRole(activeOrg?.role, ORG_MANAGER_ROLES);
 
   const [tab, setTab] = useState<Tab>('members');
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'member' });
-  const [inviteError, setInviteError] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState('');
 
   const { data: members = [], isLoading, isError } = useQuery({
     queryKey: ['members', orgId],
@@ -56,26 +53,36 @@ export function MembersPage() {
       qc.invalidateQueries({ queryKey: ['invitations', orgId] });
       setInviteForm({ email: '', role: 'member' });
       setShowInvite(false);
-      setInviteError('');
-      setInviteSuccess('Invitation sent successfully.');
-      setTimeout(() => setInviteSuccess(''), 4000);
+      toast.success('Invitation sent successfully.');
     },
-    onError: (err) => setInviteError(getMutationError(err)),
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   const resendMutation = useMutation({
     mutationFn: (id: string) => invitationsApi.resend(orgId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['invitations', orgId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invitations', orgId] });
+      toast.success('Invitation resent.');
+    },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   const cancelInviteMutation = useMutation({
     mutationFn: (id: string) => invitationsApi.cancel(orgId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['invitations', orgId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invitations', orgId] });
+      toast.success('Invitation cancelled.');
+    },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   const removesMutation = useMutation({
     mutationFn: (memberId: string) => orgsApi.removeMember(orgId, memberId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['members', orgId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members', orgId] });
+      toast.success('Member removed.');
+    },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   if (!activeOrg) return null;
@@ -96,10 +103,6 @@ export function MembersPage() {
           </button>
         )}
       </div>
-
-      {inviteSuccess && (
-        <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{inviteSuccess}</div>
-      )}
 
       {/* Tabs */}
       {isAdmin && (
@@ -176,9 +179,6 @@ export function MembersPage() {
           {showInvite && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 font-medium text-gray-800">Send invitation</h3>
-              {inviteError && (
-                <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{inviteError}</div>
-              )}
               <div className="flex gap-3">
                 <input
                   type="email"
@@ -203,7 +203,7 @@ export function MembersPage() {
                 >
                   {inviteMutation.isPending ? 'Sending…' : 'Send'}
                 </button>
-                <button onClick={() => { setShowInvite(false); setInviteError(''); }}
+                <button onClick={() => setShowInvite(false)}
                   className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700">
                   Cancel
                 </button>

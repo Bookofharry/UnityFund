@@ -12,7 +12,7 @@ export const fundRouter = Router({ mergeParams: true });
 
 fundRouter.post(
   '/',
-  requireRole('organization_admin', 'treasurer', 'platform_admin'),
+  requireRole('organization_admin', 'platform_admin'),
   validate(CreateFundDto),
   fundController.create,
 );
@@ -38,14 +38,14 @@ fundRouter.get('/:fundId/rules', fundController.getRules);
 
 fundRouter.post(
   '/:fundId/rules',
-  requireRole('organization_admin', 'treasurer', 'platform_admin'),
+  requireRole('organization_admin', 'platform_admin'),
   validate(CreateFundRulesDto),
   fundController.upsertRules,
 );
 
 fundRouter.patch(
   '/:fundId/rules',
-  requireRole('organization_admin', 'treasurer', 'platform_admin'),
+  requireRole('organization_admin', 'platform_admin'),
   validate(UpdateFundRulesDto),
   fundController.upsertRules,
 );

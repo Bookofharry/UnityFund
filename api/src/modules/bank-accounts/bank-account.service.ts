@@ -1,11 +1,16 @@
+import type { OrgMemberRole } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../lib/errors';
 import { auditLog } from '../../services/audit.service';
 import { nombaClient } from '../../lib/nomba';
+import { assertOwnerOrElevated } from '../../lib/authz';
 import type { RegisterBankAccountDtoType, UpdateBankAccountDtoType } from './bank-account.dto';
+
+type CallerMembership = { id: string; role: OrgMemberRole };
 
 const ACCOUNT_SELECT = {
   id: true,
+  orgMemberId: true,
   accountNumber: true,
   accountName: true,
   bankCode: true,
@@ -18,11 +23,12 @@ const ACCOUNT_SELECT = {
 };
 
 export class BankAccountService {
-  async register(orgId: string, orgMemberId: string, actorId: string, data: RegisterBankAccountDtoType) {
+  async register(orgId: string, orgMemberId: string, actorId: string, data: RegisterBankAccountDtoType, caller: CallerMembership) {
     const member = await prisma.orgMember.findFirst({
       where: { id: orgMemberId, organizationId: orgId, status: { not: 'removed' } },
     });
     if (!member) throw new AppError(404, 'Organization member not found');
+    assertOwnerOrElevated(caller, orgMemberId);
 
     // Check for duplicate
     const existing = await prisma.bankAccount.findUnique({
@@ -64,11 +70,12 @@ export class BankAccountService {
     });
   }
 
-  async list(orgId: string, orgMemberId: string) {
+  async list(orgId: string, orgMemberId: string, caller: CallerMembership) {
     const member = await prisma.orgMember.findFirst({
       where: { id: orgMemberId, organizationId: orgId },
     });
     if (!member) throw new AppError(404, 'Organization member not found');
+    assertOwnerOrElevated(caller, orgMemberId);
 
     return prisma.bankAccount.findMany({
       where: { orgMemberId, status: 'active' },
@@ -77,17 +84,18 @@ export class BankAccountService {
     });
   }
 
-  async findById(orgId: string, accountId: string) {
+  async findById(orgId: string, accountId: string, caller: CallerMembership) {
     const account = await prisma.bankAccount.findFirst({
       where: { id: accountId, orgMember: { organizationId: orgId }, status: 'active' },
       select: ACCOUNT_SELECT,
     });
     if (!account) throw new AppError(404, 'Bank account not found');
+    assertOwnerOrElevated(caller, account.orgMemberId);
     return account;
   }
 
-  async verify(orgId: string, accountId: string, actorId: string) {
-    const account = await this.findById(orgId, accountId);
+  async verify(orgId: string, accountId: string, actorId: string, caller: CallerMembership) {
+    const account = await this.findById(orgId, accountId, caller);
 
     const result = await nombaClient.accountNameEnquiry({
       accountNumber: account.accountNumber,
@@ -106,13 +114,13 @@ export class BankAccountService {
     return updated;
   }
 
-  async update(orgId: string, accountId: string, actorId: string, data: UpdateBankAccountDtoType) {
-    const account = await this.findById(orgId, accountId);
+  async update(orgId: string, accountId: string, actorId: string, data: UpdateBankAccountDtoType, caller: CallerMembership) {
+    const account = await this.findById(orgId, accountId, caller);
 
     return prisma.$transaction(async (tx) => {
       if (data.isDefault) {
         await tx.bankAccount.updateMany({
-          where: { orgMemberId: (account as any).orgMemberId, isDefault: true, status: 'active' },
+          where: { orgMemberId: account.orgMemberId, isDefault: true, status: 'active' },
           data: { isDefault: false },
         });
       }
@@ -135,8 +143,8 @@ export class BankAccountService {
     });
   }
 
-  async remove(orgId: string, accountId: string, actorId: string) {
-    await this.findById(orgId, accountId);
+  async remove(orgId: string, accountId: string, actorId: string, caller: CallerMembership) {
+    await this.findById(orgId, accountId, caller);
 
     // Block if payout in processing is tied to this org member's accounts
     // (best-effort check — exact FK not stored on payout for MVP)

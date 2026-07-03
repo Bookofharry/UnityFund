@@ -4,6 +4,8 @@ import { api } from '../lib/api';
 import { payoutsApi } from '../api/payouts';
 import { formatKobo, formatDate } from '../lib/format';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
+import { hasRole, APPROVER_ROLES, EXECUTOR_ROLES } from '../lib/roles';
+import { useToast, getErrorMessage } from '../context/ToastContext';
 
 interface Payout {
   id: string;
@@ -31,18 +33,15 @@ const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-500',
 };
 
-function getMutationError(err: unknown) {
-  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Action failed.';
-}
-
 export function PayoutsPage() {
   const { activeOrg } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
   const orgId = activeOrg?.id ?? '';
   const role = activeOrg?.role ?? '';
 
-  const canApprove = ['approver', 'organization_admin', 'platform_admin'].includes(role);
-  const canExecute = ['treasurer', 'organization_admin', 'platform_admin'].includes(role);
+  const canApprove = hasRole(role, APPROVER_ROLES);
+  const canExecute = hasRole(role, EXECUTOR_ROLES);
 
   const { data: payouts = [], isLoading, isError } = useQuery({
     queryKey: ['payouts', orgId],
@@ -52,12 +51,20 @@ export function PayoutsPage() {
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => payoutsApi.approve(orgId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payouts', orgId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payouts', orgId] });
+      toast.success('Payout approved.');
+    },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   const executeMutation = useMutation({
     mutationFn: (id: string) => payoutsApi.execute(orgId, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payouts', orgId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payouts', orgId] });
+      toast.success('Payout executed.');
+    },
+    onError: (err) => toast.error(getErrorMessage(err, 'Action failed.')),
   });
 
   if (!activeOrg) return null;
@@ -66,12 +73,6 @@ export function PayoutsPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900">Payouts</h1>
       <p className="mt-1 text-sm text-gray-500">Track fund payouts and disbursements</p>
-
-      {(approveMutation.isError || executeMutation.isError) && (
-        <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          {getMutationError(approveMutation.error ?? executeMutation.error)}
-        </div>
-      )}
 
       {isLoading ? (
         <LoadingState />

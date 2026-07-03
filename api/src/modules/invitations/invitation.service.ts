@@ -108,6 +108,9 @@ export class InvitationService {
         // Case A: link existing authenticated user
         const user = await tx.user.findUnique({ where: { id: authenticatedUserId } });
         if (!user) throw new AppError(401, 'Authenticated user not found');
+        if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+          throw new AppError(403, 'This invitation was sent to a different email address', 'INVITE_EMAIL_MISMATCH');
+        }
         userId = user.id;
       } else {
         // Case B: register new user
