@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate';
 import { requireOrgMember } from '../../middleware/requireOrgMember';
 import { requireRole } from '../../middleware/requireRole';
+import { requirePlatformAdmin } from '../../middleware/requirePlatformAdmin';
 import { validate } from '../../middleware/validate';
 import { organizationController, memberController, orgInvitationController } from './organization.controller';
 import {
@@ -27,6 +28,9 @@ organizationRouter.use(authenticate);
 // ─── Organization CRUD ────────────────────────────────────────────────────────
 organizationRouter.post('/', validate(CreateOrganizationDto), organizationController.create);
 organizationRouter.get('/', organizationController.list);
+
+// Platform-admin only: list ALL organizations on the platform.
+organizationRouter.get('/admin/all', requirePlatformAdmin, organizationController.listAll);
 
 organizationRouter.get(
   '/:orgId',

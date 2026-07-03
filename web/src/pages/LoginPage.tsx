@@ -14,7 +14,7 @@ const schema = z.object({
 type Fields = z.infer<typeof schema>;
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, clearSession } = useAuth();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState('');
 
@@ -25,7 +25,14 @@ export function LoginPage() {
   const onSubmit = async (data: Fields) => {
     setServerError('');
     try {
-      await login(data.email, data.password);
+      const u = await login(data.email, data.password);
+      const memberships = u.orgMemberships ?? u.memberships ?? [];
+      const isPlatformAdmin = memberships.some((m) => m.role === 'platform_admin');
+      if (isPlatformAdmin) {
+        clearSession();
+        setServerError('This is a platform admin account. Please sign in at /admin/login.');
+        return;
+      }
       navigate('/dashboard');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Login failed';

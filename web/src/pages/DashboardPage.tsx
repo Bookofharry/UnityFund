@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { orgsApi } from '../api/organizations';
 import { formatKobo } from '../lib/format';
 import { LoadingState, ErrorState } from '../components/QueryStates';
+import { hasRole, FINANCE_ROLES } from '../lib/roles';
 
 const ROLE_LABELS: Record<string, string> = {
   organization_admin: 'Admin',
@@ -40,14 +41,14 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, accent, iconBg, iconColor, iconPath }: StatCardProps) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm ${accent}`}>
-      <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
-        <svg className={`h-5 w-5 ${iconColor}`} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24" aria-hidden="true">
+    <div className={`relative overflow-hidden rounded-2xl border bg-white p-4 shadow-sm sm:p-5 ${accent}`}>
+      <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${iconBg}`}>
+        <svg className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d={iconPath} />
         </svg>
       </div>
-      <p className="mt-4 text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-0.5 text-2xl font-bold tracking-tight text-gray-900">{value}</p>
+      <p className="mt-3 text-xs font-medium text-gray-500 sm:mt-4 sm:text-sm">{label}</p>
+      <p className="mt-0.5 break-words text-lg font-bold tracking-tight text-gray-900 sm:text-2xl">{value}</p>
       {sub && <p className="mt-1 text-xs text-gray-400">{sub}</p>}
     </div>
   );
@@ -119,7 +120,7 @@ export function DashboardPage() {
   if (!activeOrg) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+        <div className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm sm:p-10">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50">
             <svg className="h-7 w-7 text-indigo-500" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -137,17 +138,17 @@ export function DashboardPage() {
     );
   }
 
-  const isAdmin = ['organization_admin', 'treasurer', 'platform_admin'].includes(activeOrg.role);
+  const isAdmin = hasRole(activeOrg.role, FINANCE_ROLES);
   const quickActions = isAdmin ? ADMIN_ACTIONS : MEMBER_ACTIONS;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
 
       {/* ── Welcome banner ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-800 px-7 py-7 text-white shadow-md">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-800 px-5 py-6 text-white shadow-md sm:px-7 sm:py-7">
         <div className="relative z-10">
           <p className="text-sm font-medium text-indigo-200">{getGreeting()},</p>
-          <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
+          <h1 className="mt-0.5 break-words text-xl font-bold tracking-tight sm:text-2xl">
             {user?.firstName} {user?.lastName}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -159,7 +160,7 @@ export function DashboardPage() {
             </span>
           </div>
         </div>
-        {/* Decorative circles */}
+        {/* Decorative circles — clipped by overflow-hidden above, safe at any width */}
         <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/5" />
         <div className="pointer-events-none absolute -bottom-10 -right-4 h-56 w-56 rounded-full bg-white/5" />
       </div>
@@ -170,7 +171,7 @@ export function DashboardPage() {
       ) : isError ? (
         <ErrorState />
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
           <StatCard
             label="Active Funds"
             value={data?.activeFunds ?? 0}
@@ -218,10 +219,10 @@ export function DashboardPage() {
             <Link
               key={action.to}
               to={action.to}
-              className="group flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+              className="group flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:gap-4 sm:p-5"
             >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${action.iconBg}`}>
-                <svg className={`h-5 w-5 ${action.iconColor}`} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24" aria-hidden="true">
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${action.iconBg}`}>
+                <svg className={`h-4 w-4 sm:h-5 sm:w-5 ${action.iconColor}`} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d={action.iconPath} />
                 </svg>
               </div>

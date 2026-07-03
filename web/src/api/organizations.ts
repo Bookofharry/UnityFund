@@ -15,7 +15,15 @@ export interface OrgMember {
   user: { id: string; firstName: string; lastName: string; email: string };
 }
 
+export interface OrganizationWithCounts extends Organization {
+  _count: { members: number; funds: number };
+}
+
 export const orgsApi = {
+  listAll: () =>
+    api.get<{ organizations: OrganizationWithCounts[] }>('/organizations/admin/all')
+      .then((r) => r.data.organizations),
+
   create: (data: { name: string; organizationType: string; email: string; phone?: string }) =>
     api.post<{ organization: Organization; membership: { id: string; role: string } }>('/organizations', data)
       .then((r) => r.data),

@@ -4,8 +4,9 @@ import { authApi, User } from '../api/auth';
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   setSession: (user: User, accessToken: string) => void;
+  clearSession: () => void;
   logout: () => void;
   activeOrg: { id: string; name: string; role: string } | null;
   setActiveOrg: (org: { id: string; name: string; role: string } | null) => void;
@@ -49,17 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('access_token', accessToken);
     const u = await authApi.me();
     setSession(u, accessToken);
+    return u;
   }, [setSession]);
 
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
     localStorage.removeItem('access_token');
     setUser(null);
     setActiveOrg(null);
-    window.location.href = '/login';
   }, []);
 
+  const logout = useCallback(() => {
+    clearSession();
+    window.location.href = '/login';
+  }, [clearSession]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, setSession, logout, activeOrg, setActiveOrg }}>
+    <AuthContext.Provider value={{ user, loading, login, setSession, clearSession, logout, activeOrg, setActiveOrg }}>
       {children}
     </AuthContext.Provider>
   );

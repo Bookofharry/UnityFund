@@ -21,6 +21,13 @@ export const organizationController = {
     } catch (err) { next(err); }
   },
 
+  async listAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const organizations = await organizationService.listAll();
+      res.json({ organizations });
+    } catch (err) { next(err); }
+  },
+
   async get(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const org = await organizationService.findById(params(req).orgId);

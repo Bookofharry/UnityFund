@@ -44,6 +44,16 @@ export class OrganizationService {
     return memberships;
   }
 
+  async listAll() {
+    return prisma.organization.findMany({
+      select: {
+        ...ORG_SELECT,
+        _count: { select: { members: { where: { status: 'active' } }, funds: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async findById(orgId: string) {
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
