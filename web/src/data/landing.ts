@@ -370,7 +370,7 @@ export const finalCta = {
     'Join organizations across Nigeria who are replacing manual financial administration with UnityFund\'s automated fund management platform.',
   ctaPrimary: 'Create your organization →',
   ctaSecondary: 'Talk to us first',
-  trust: ['Free to start', 'No credit card required', 'Setup in under 30 minutes'],
+  trust: ['Free to start', 'No credit card', 'Setup in 30 min'],
 };
 
 export const footer = {

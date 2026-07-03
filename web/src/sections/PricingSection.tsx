@@ -30,7 +30,7 @@ export function PricingSection() {
         </motion.div>
 
         {/* Plans */}
-        <div className="mt-16 grid items-center gap-5 md:grid-cols-3 md:gap-4">
+        <div className="mt-16 grid items-center gap-5 lg:grid-cols-3 lg:gap-4">
           {pricing.plans.map((plan, i) => (
             <PricingCard key={plan.name} {...plan} index={i} />
           ))}

@@ -56,15 +56,15 @@ export function ProblemSection() {
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-gray-400">
             How most organizations currently work
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap sm:justify-center">
             {problem.before.map(({ label, sub }, i) => (
-              <div key={label} className="flex items-center gap-4">
-                <div className="w-48 rounded-xl border-2 border-dashed border-red-200 bg-red-50 px-5 py-4 text-center">
+              <div key={label} className="flex w-full max-w-xs flex-col items-center gap-4 sm:w-auto sm:max-w-none sm:flex-row">
+                <div className="w-full rounded-xl border-2 border-dashed border-red-200 bg-red-50 px-5 py-4 text-center sm:w-48">
                   <p className="text-sm font-semibold text-red-700">{label}</p>
                   <p className="mt-0.5 text-xs text-red-400">{sub}</p>
                 </div>
                 {i < problem.before.length - 1 && (
-                  <ArrowRight className="h-4 w-4 shrink-0 text-red-300" aria-hidden="true" />
+                  <ArrowRight className="h-4 w-4 shrink-0 rotate-90 text-red-300 sm:rotate-0" aria-hidden="true" />
                 )}
               </div>
             ))}

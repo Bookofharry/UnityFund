@@ -56,6 +56,7 @@ export function HeroSection() {
                 <span className="text-xs font-semibold tracking-wide text-indigo-700">
                   {hero.badge}
                 </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-slow" aria-hidden="true" />
               </motion.div>
             </motion.div>
 

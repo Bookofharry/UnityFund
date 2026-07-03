@@ -25,16 +25,16 @@ export function SolutionSection() {
           className="mt-14"
           aria-label="Fund management workflow"
         >
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
             {solution.chain.map(({ label, desc }, i) => (
-              <div key={label} className="flex items-center gap-2">
-                <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-center">
+              <div key={label} className="flex w-full flex-col items-center gap-2 sm:w-auto sm:flex-row">
+                <div className="w-full rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-center sm:w-auto">
                   <p className="text-sm font-bold text-navy-800">{label}</p>
                   <p className="mt-0.5 text-[11px] text-indigo-500">{desc}</p>
                 </div>
                 {i < solution.chain.length - 1 && (
                   <ArrowRight
-                    className="h-4 w-4 shrink-0 text-indigo-300"
+                    className="h-4 w-4 shrink-0 rotate-90 text-indigo-300 sm:rotate-0"
                     aria-hidden="true"
                   />
                 )}

@@ -36,7 +36,7 @@ const SCHEMES = [
     card: [
       'bg-navy-800',
       'ring-1 ring-inset ring-indigo-500/35',
-      'md:scale-[1.05] md:z-10',
+      'lg:scale-[1.05] lg:z-10',
     ].join(' '),
     label: 'text-slate-500',
     price: 'text-white',
@@ -75,7 +75,7 @@ export function PricingCard({ name, price, period, badge, features, cta, index }
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-32px' }}
       transition={{ duration: 0.55, delay: index * 0.1, ease: EASE }}
-      className={`relative flex flex-col rounded-2xl px-8 py-10 ${s.card}`}
+      className={`relative flex flex-col rounded-2xl px-6 py-8 sm:px-8 sm:py-10 ${s.card}`}
     >
 
       {/* Badge */}
@@ -93,7 +93,7 @@ export function PricingCard({ name, price, period, badge, features, cta, index }
 
       {/* Price */}
       <div className="mt-3 flex items-end gap-1.5">
-        <span className={`text-[2.75rem] font-black leading-none tracking-tight ${s.price}`}>
+        <span className={`text-4xl font-black leading-none tracking-tight sm:text-[2.75rem] ${s.price}`}>
           {price}
         </span>
         {period && (

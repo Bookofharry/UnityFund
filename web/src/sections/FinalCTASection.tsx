@@ -56,10 +56,10 @@ export function FinalCTASection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.45 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-6"
+          className="scrollbar-hide mt-8 flex flex-nowrap items-center justify-center gap-2 overflow-x-auto sm:flex-wrap sm:gap-6 sm:overflow-visible"
         >
           {finalCta.trust.map((item) => (
-            <p key={item} className="flex items-center gap-2 text-sm text-indigo-300">
+            <p key={item} className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-indigo-300 sm:gap-2 sm:text-sm">
               <span aria-hidden="true" className="text-emerald-400">✓</span>
               {item}
             </p>

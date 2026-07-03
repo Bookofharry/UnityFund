@@ -96,9 +96,9 @@ export function TrustedBySection() {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="mt-10 flex items-center justify-center gap-3"
         >
-          <div className="h-px w-16 bg-gray-200" />
-          <p className="text-sm font-medium text-gray-400">{trustedBy.tagline}</p>
-          <div className="h-px w-16 bg-gray-200" />
+          <div className="hidden h-px w-16 bg-gray-200 sm:block" />
+          <p className="whitespace-nowrap text-xs font-medium text-gray-400 sm:text-sm">{trustedBy.tagline}</p>
+          <div className="hidden h-px w-16 bg-gray-200 sm:block" />
         </motion.div>
 
       </div>
