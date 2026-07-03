@@ -48,7 +48,7 @@ export function HeroSection() {
             {/* Badge */}
             <motion.div {...fadeUp(0)}>
               <motion.div
-                animate={{ rotate: [-10, 10, -10] }}
+                animate={{ rotate: [-3, 3, -3] }}
                 transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                 className="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3.5 py-1.5"
               >
