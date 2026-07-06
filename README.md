@@ -274,6 +274,12 @@ UnityFund/
 
 ---
 
+## Demo Readiness
+
+For the safest presentation path and a repo-specific MVP rehearsal checklist, see [docs/pitch/demo-day-checklist.md](docs/pitch/demo-day-checklist.md).
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
