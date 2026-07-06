@@ -5,6 +5,7 @@ import { orgsApi } from '../api/organizations';
 import { bankAccountsApi, BankAccount } from '../api/bank-accounts';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
 import { useToast, getErrorMessage } from '../context/ToastContext';
+import { hasRole, FINANCE_ROLES } from '../lib/roles';
 
 const NIGERIAN_BANKS = [
   { code: '044', name: 'Access Bank' },
@@ -46,6 +47,10 @@ export function BankAccountsPage() {
   const { activeOrg } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
+  // Verify/set-default/remove are Org Admin & Treasurer only, even on your own
+  // account — a member can register a bank account but an admin/treasurer
+  // must verify it before it's usable for payouts.
+  const canManage = hasRole(activeOrg?.role, FINANCE_ROLES);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<AddAccountForm>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -228,10 +233,13 @@ export function BankAccountsPage() {
                   {acc.accountName && (
                     <p className="mt-0.5 text-sm text-gray-500">{acc.accountName}</p>
                   )}
+                  {!acc.isVerified && !canManage && (
+                    <p className="mt-0.5 text-xs text-gray-400">Awaiting verification by your organization's Treasurer or Admin.</p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {!acc.isVerified && (
+                  {!acc.isVerified && canManage && (
                     <button
                       onClick={() => verifyMutation.mutate(acc.id)}
                       disabled={verifyMutation.isPending}
@@ -240,7 +248,7 @@ export function BankAccountsPage() {
                       Verify
                     </button>
                   )}
-                  {!acc.isDefault && acc.isVerified && (
+                  {!acc.isDefault && acc.isVerified && canManage && (
                     <button
                       onClick={() => defaultMutation.mutate(acc.id)}
                       disabled={defaultMutation.isPending}
@@ -249,15 +257,17 @@ export function BankAccountsPage() {
                       Set default
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      if (confirm('Remove this bank account?')) removeMutation.mutate(acc.id);
-                    }}
-                    disabled={removeMutation.isPending}
-                    className="text-xs font-medium text-red-500 hover:underline disabled:opacity-60"
-                  >
-                    Remove
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Remove this bank account?')) removeMutation.mutate(acc.id);
+                      }}
+                      disabled={removeMutation.isPending}
+                      className="text-xs font-medium text-red-500 hover:underline disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
