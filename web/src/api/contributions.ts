@@ -7,12 +7,20 @@ export interface Contribution {
   status: string;
   dueDate?: string;
   paidAt?: string;
+  createdAt: string;
   fundMember: {
     id: string;
     rotationPosition?: number;
     orgMember: { user: { id: string; firstName: string; lastName: string; email: string } };
   };
-  collectionCycle: { id: string; name: string; cycleNumber: number; status: string; fundId: string };
+  collectionCycle: {
+    id: string;
+    name: string;
+    cycleNumber: number;
+    status: string;
+    fundId: string;
+    fund: { id: string; name: string };
+  };
 }
 
 export const contributionsApi = {

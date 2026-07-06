@@ -23,12 +23,22 @@ const CONTRIBUTION_SELECT = {
     },
   },
   collectionCycle: {
-    select: { id: true, name: true, cycleNumber: true, status: true, fundId: true },
+    select: { id: true, name: true, cycleNumber: true, status: true, fundId: true, fund: { select: { id: true, name: true } } },
   },
 };
 
 export class ContributionService {
-  async list(filters: { orgId: string; fundId?: string; cycleId?: string; memberId?: string; status?: string }) {
+  async list(filters: {
+    orgId: string;
+    fundId?: string;
+    cycleId?: string;
+    memberId?: string;
+    status?: string;
+    // Non-elevated callers (regular members) are hard-restricted to their own
+    // contributions here, server-side — the memberId query param is only
+    // honored for elevated (finance/admin) callers, see contribution.controller.ts.
+    restrictToOrgMemberId?: string;
+  }) {
     const where: Prisma.ContributionWhereInput = {
       collectionCycle: {
         fund: { organizationId: filters.orgId },
@@ -36,6 +46,7 @@ export class ContributionService {
         ...(filters.cycleId ? { id: filters.cycleId } : {}),
       },
       ...(filters.memberId ? { fundMemberId: filters.memberId } : {}),
+      ...(filters.restrictToOrgMemberId ? { fundMember: { orgMemberId: filters.restrictToOrgMemberId } } : {}),
       ...(filters.status ? { status: filters.status as Prisma.EnumContributionStatusFilter } : {}),
     };
 
@@ -46,11 +57,12 @@ export class ContributionService {
     });
   }
 
-  async findById(orgId: string, contributionId: string) {
+  async findById(orgId: string, contributionId: string, restrictToOrgMemberId?: string) {
     const contribution = await prisma.contribution.findFirst({
       where: {
         id: contributionId,
         collectionCycle: { fund: { organizationId: orgId } },
+        ...(restrictToOrgMemberId ? { fundMember: { orgMemberId: restrictToOrgMemberId } } : {}),
       },
       select: {
         ...CONTRIBUTION_SELECT,
