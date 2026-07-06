@@ -8,7 +8,6 @@ import { BrandedLoaderBlock } from '../components/BrandedLoader';
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
   treasurer: 'Treasurer',
-  approver: 'Approver',
   organization_admin: 'Organization Admin',
 };
 

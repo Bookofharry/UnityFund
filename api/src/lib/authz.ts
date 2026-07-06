@@ -2,8 +2,8 @@ import type { OrgMemberRole } from '@prisma/client';
 import { AppError } from './errors';
 
 // Roles allowed to view/manage another member's bank accounts and mandates
-// for support purposes. Deliberately excludes 'treasurer' and 'approver' —
-// least privilege, they don't need cross-member financial-PII access.
+// for support purposes. Deliberately excludes 'treasurer' — least privilege,
+// they don't need cross-member financial-PII access.
 const ELEVATED_ROLES: OrgMemberRole[] = ['organization_admin', 'platform_admin'];
 
 /** Throws 403 unless the caller owns the target record or holds an elevated role. */

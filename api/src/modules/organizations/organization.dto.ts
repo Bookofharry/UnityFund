@@ -18,7 +18,6 @@ export const UpdateOrganizationDto = z.object({
 const assignableRoles = [
   OrgMemberRole.member,
   OrgMemberRole.treasurer,
-  OrgMemberRole.approver,
   OrgMemberRole.organization_admin,
 ] as const;
 

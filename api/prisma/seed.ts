@@ -3,7 +3,7 @@
  *
  * Creates a realistic demo dataset:
  *   1 organization: "Lagos Teachers Cooperative"
- *   5 users: admin, treasurer, approver, member1, member2, member3
+ *   6 users: platform admin, admin, treasurer, member1, member2, member3
  *   3 funds: Annual Dues, Welfare Fund, Rotational Savings (3-member rotation)
  *   Fund rules configured for each fund
  *   Fund members enrolled (rotation positions set for rotational_savings)
@@ -140,7 +140,8 @@ async function main() {
         data: { organizationId: org.id, userId: treasurer.id, role: OrgMemberRole.treasurer },
       }),
       prisma.orgMember.create({
-        data: { organizationId: org.id, userId: approver.id, role: OrgMemberRole.approver },
+        // Approver role has been removed — Org Admin handles payout approval now.
+        data: { organizationId: org.id, userId: approver.id, role: OrgMemberRole.member },
       }),
       prisma.orgMember.create({
         data: { organizationId: org.id, userId: member1.id, role: OrgMemberRole.member },
@@ -268,10 +269,10 @@ async function main() {
   console.log(`  Platform Admin: platform@unityfund.dev`);
   console.log(`  Admin:          admin@unityfund.dev`);
   console.log(`  Treasurer:      treasurer@unityfund.dev`);
-  console.log(`  Approver:       approver@unityfund.dev`);
-  console.log(`  Member 1:       amaka@unityfund.dev`);
-  console.log(`  Member 2:       tunde@unityfund.dev`);
-  console.log(`  Member 3:       ngozi@unityfund.dev`);
+  console.log(`  Member 1:       approver@unityfund.dev`);
+  console.log(`  Member 2:       amaka@unityfund.dev`);
+  console.log(`  Member 3:       tunde@unityfund.dev`);
+  console.log(`  Member 4:       ngozi@unityfund.dev`);
   console.log('─── Funds ────────────────────────────────────');
   console.log(`  Annual Dues 2026        (₦12,000/year, no payout)`);
   console.log(`  Member Welfare Fund     (₦5,000/month, approval required)`);

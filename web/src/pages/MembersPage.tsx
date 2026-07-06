@@ -7,18 +7,16 @@ import { LoadingState, ErrorState } from '../components/QueryStates';
 import { hasRole, ORG_MANAGER_ROLES } from '../lib/roles';
 import { useToast, getErrorMessage } from '../context/ToastContext';
 
-const ROLE_OPTIONS = ['member', 'treasurer', 'approver', 'organization_admin'];
+const ROLE_OPTIONS = ['member', 'treasurer', 'organization_admin'];
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
   treasurer: 'Treasurer',
-  approver: 'Approver',
   organization_admin: 'Admin',
   platform_admin: 'Platform Admin',
 };
 const ROLE_COLORS: Record<string, string> = {
   organization_admin: 'bg-indigo-100 text-indigo-700',
   treasurer: 'bg-purple-100 text-purple-700',
-  approver: 'bg-blue-100 text-blue-700',
   member: 'bg-gray-100 text-gray-600',
 };
 

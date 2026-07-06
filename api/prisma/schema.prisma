@@ -39,7 +39,6 @@ enum OrganizationStatus {
 enum OrgMemberRole {
   member
   treasurer
-  approver
   organization_admin
   platform_admin
 }

@@ -9,7 +9,6 @@ import { hasRole, FINANCE_ROLES } from '../lib/roles';
 const ROLE_LABELS: Record<string, string> = {
   organization_admin: 'Admin',
   treasurer:          'Treasurer',
-  approver:           'Approver',
   member:             'Member',
   platform_admin:     'Platform Admin',
 };
@@ -17,7 +16,6 @@ const ROLE_LABELS: Record<string, string> = {
 const ROLE_COLORS: Record<string, string> = {
   organization_admin: 'bg-indigo-100 text-indigo-700',
   treasurer:          'bg-purple-100 text-purple-700',
-  approver:           'bg-blue-100 text-blue-700',
   member:             'bg-gray-100 text-gray-600',
   platform_admin:     'bg-amber-100 text-amber-700',
 };

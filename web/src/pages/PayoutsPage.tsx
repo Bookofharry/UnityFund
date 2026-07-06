@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { payoutsApi } from '../api/payouts';
 import { formatKobo, formatDate } from '../lib/format';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
-import { hasRole, APPROVER_ROLES, EXECUTOR_ROLES } from '../lib/roles';
+import { hasRole, ORG_MANAGER_ROLES, EXECUTOR_ROLES } from '../lib/roles';
 import { useToast, getErrorMessage } from '../context/ToastContext';
 
 interface Payout {
@@ -40,7 +40,7 @@ export function PayoutsPage() {
   const orgId = activeOrg?.id ?? '';
   const role = activeOrg?.role ?? '';
 
-  const canApprove = hasRole(role, APPROVER_ROLES);
+  const canApprove = hasRole(role, ORG_MANAGER_ROLES);
   const canExecute = hasRole(role, EXECUTOR_ROLES);
 
   const { data: payouts = [], isLoading, isError } = useQuery({

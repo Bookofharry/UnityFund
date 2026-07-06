@@ -22,7 +22,7 @@ payoutActionsRouter.use(authenticate, requireOrgMember());
 payoutActionsRouter.get('/', payoutController.list);
 payoutActionsRouter.get('/:payoutId', payoutController.get);
 payoutActionsRouter.post('/:payoutId/approve',
-  requireRole('approver', 'organization_admin', 'platform_admin'),
+  requireRole('organization_admin', 'platform_admin'),
   validate(ApprovePayoutDto), payoutController.approve);
 payoutActionsRouter.post('/:payoutId/execute',
   requireRole('treasurer', 'organization_admin', 'platform_admin'),

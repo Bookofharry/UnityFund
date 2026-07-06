@@ -121,7 +121,7 @@ export const features = {
     {
       icon: 'Shield',
       title: 'Role-Based Access',
-      body: 'Admin, Treasurer, Approver, Member — every role sees and does exactly what they should. Execution and approval are always separated.',
+      body: 'Admin, Treasurer, Member — every role sees and does exactly what they should. Treasurers execute; only Admins approve.',
     },
     {
       icon: 'FileText',

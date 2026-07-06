@@ -17,8 +17,7 @@ const BASE_NAV = [
   { to: '/notifications', label: 'Notifications' },
 ];
 
-// Approver gets view-only Reports access alongside the finance roles.
-const REPORTS_ROLES: Role[] = [...FINANCE_ROLES, 'approver'];
+const REPORTS_ROLES: Role[] = FINANCE_ROLES;
 // Settings can only be saved by org managers — Treasurer would silently 403 on save.
 const SETTINGS_ROLES = ORG_MANAGER_ROLES;
 

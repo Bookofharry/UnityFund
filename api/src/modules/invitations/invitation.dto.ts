@@ -4,7 +4,6 @@ import { OrgMemberRole } from '@prisma/client';
 const assignableRoles = [
   OrgMemberRole.member,
   OrgMemberRole.treasurer,
-  OrgMemberRole.approver,
   OrgMemberRole.organization_admin,
 ] as const;
 
