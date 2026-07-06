@@ -30,9 +30,21 @@ export function createApp() {
   app.use(helmet());
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
+  // Vite auto-increments its port whenever the configured one is already in
+  // use (3000 -> 3001 -> ...), which silently breaks a hardcoded single-origin
+  // allowlist in local dev. Production stays locked to the exact configured
+  // origin — this relaxation only applies below production.
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin:
+        env.NODE_ENV === 'production'
+          ? env.CORS_ORIGIN
+          : (origin, callback) => {
+              if (!origin || origin === env.CORS_ORIGIN || /^http:\/\/localhost:\d+$/.test(origin)) {
+                return callback(null, true);
+              }
+              callback(new Error(`CORS: origin ${origin} not allowed`));
+            },
       credentials: true,
     }),
   );
@@ -67,7 +79,7 @@ export function createApp() {
   app.use('/api/auth', authLimiter, authRouter);
   app.use('/api/organizations', apiLimiter, organizationRouter);
   app.use('/api/invitations', invitationLimiter, invitationRouter);
-  app.use('/api/organizations', apiLimiter, paymentListRouter);
+  app.use('/api/organizations/:orgId/payments', apiLimiter, paymentListRouter);
   app.use('/api/webhooks', webhookLimiter, webhookRouter);
   app.use('/api/notifications', apiLimiter, notificationRouter);
 
