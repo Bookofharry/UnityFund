@@ -15,9 +15,22 @@ export interface Payment {
   createdAt: string;
 }
 
+export interface PaymentHistoryItem extends Payment {
+  contribution: {
+    fundMember: {
+      orgMember: { user: { id: string; firstName: string; lastName: string; email: string } };
+    };
+    collectionCycle: {
+      id: string;
+      name: string;
+      fund: { id: string; name: string };
+    };
+  };
+}
+
 export const paymentsApi = {
   list: (orgId: string, filters?: { fundId?: string; contributionId?: string }) =>
-    api.get<{ payments: Payment[] }>(`/organizations/${orgId}/payments`, { params: filters })
+    api.get<{ payments: PaymentHistoryItem[] }>(`/organizations/${orgId}/payments`, { params: filters })
       .then((r) => r.data.payments),
 
   get: (orgId: string, paymentId: string) =>

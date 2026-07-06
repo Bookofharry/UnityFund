@@ -18,6 +18,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ 
 const FundsPage = lazy(() => import('./pages/FundsPage').then((m) => ({ default: m.FundsPage })));
 const FundDetailPage = lazy(() => import('./pages/FundDetailPage').then((m) => ({ default: m.FundDetailPage })));
 const ContributionsPage = lazy(() => import('./pages/ContributionsPage').then((m) => ({ default: m.ContributionsPage })));
+const PaymentHistoryPage = lazy(() => import('./pages/PaymentHistoryPage').then((m) => ({ default: m.PaymentHistoryPage })));
 const MembersPage = lazy(() => import('./pages/MembersPage').then((m) => ({ default: m.MembersPage })));
 const PayoutsPage = lazy(() => import('./pages/PayoutsPage').then((m) => ({ default: m.PayoutsPage })));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
@@ -74,6 +75,7 @@ function App() {
                   <Route path="/funds" element={<FundsPage />} />
                   <Route path="/funds/:fundId" element={<FundDetailPage />} />
                   <Route path="/contributions" element={<ContributionsPage />} />
+                  <Route path="/payment-history" element={<PaymentHistoryPage />} />
                   <Route path="/members" element={<MembersPage />} />
                   <Route path="/payouts" element={<PayoutsPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />

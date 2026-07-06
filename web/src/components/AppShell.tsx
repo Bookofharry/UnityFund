@@ -10,6 +10,7 @@ const BASE_NAV = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/funds', label: 'Funds' },
   { to: '/contributions', label: 'Contributions' },
+  { to: '/payment-history', label: 'Payment History' },
   { to: '/payouts', label: 'Payouts' },
   { to: '/members', label: 'Members' },
   { to: '/bank-accounts', label: 'Bank Accounts' },

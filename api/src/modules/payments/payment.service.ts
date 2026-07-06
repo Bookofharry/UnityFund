@@ -23,6 +23,30 @@ const PAYMENT_SELECT = {
   updatedAt: true,
 };
 
+const PAYMENT_HISTORY_SELECT = {
+  ...PAYMENT_SELECT,
+  contribution: {
+    select: {
+      fundMember: {
+        select: {
+          orgMember: {
+            select: {
+              user: { select: { id: true, firstName: true, lastName: true, email: true } },
+            },
+          },
+        },
+      },
+      collectionCycle: {
+        select: {
+          id: true,
+          name: true,
+          fund: { select: { id: true, name: true } },
+        },
+      },
+    },
+  },
+};
+
 export class PaymentService {
   async initiate(orgId: string, contributionId: string, actorUserId: string, data: InitiatePaymentDtoType) {
     const contribution = await prisma.contribution.findFirst({
@@ -55,6 +79,32 @@ export class PaymentService {
     });
     if (existingPayment) {
       logger.info({ paymentId: existingPayment.id, contributionId }, 'Returning existing in-flight payment');
+
+      // Checkout URLs are single-use/short-lived and never persisted (no column
+      // for it on Payment), so the existing payment alone isn't enough for the
+      // frontend to resume a checkout — regenerate a fresh session for the same
+      // payment record instead of creating a duplicate Payment row.
+      if (data.paymentMethod === 'checkout') {
+        try {
+          const actor = await prisma.user.findUnique({ where: { id: actorUserId }, select: { email: true } });
+          const result = await nombaClient.createCheckoutSession({
+            amount: existingPayment.amount,
+            currency: existingPayment.currency,
+            reference: existingPayment.id,
+            callbackUrl: `${env.APP_URL}/payments/callback?paymentId=${existingPayment.id}&orgId=${orgId}`,
+            customerEmail: actor?.email,
+            customerId: actorUserId,
+          });
+          return { payment: existingPayment, checkoutUrl: result.checkoutUrl };
+        } catch (err) {
+          await prisma.payment.update({
+            where: { id: existingPayment.id },
+            data: { status: 'failed' },
+          }).catch(() => {});
+          throw err;
+        }
+      }
+
       return { payment: existingPayment };
     }
 
@@ -197,22 +247,35 @@ export class PaymentService {
     }
   }
 
-  async list(orgId: string, filters: { fundId?: string; contributionId?: string }) {
+  async list(orgId: string, filters: {
+    fundId?: string;
+    contributionId?: string;
+    // Non-elevated callers (regular members) are hard-restricted to their own
+    // payment history here, server-side — see payment.controller.ts.
+    restrictToOrgMemberId?: string;
+  }) {
     const where: Prisma.PaymentWhereInput = {
       organizationId: orgId,
       ...(filters.fundId ? { fundId: filters.fundId } : {}),
       ...(filters.contributionId ? { contributionId: filters.contributionId } : {}),
+      ...(filters.restrictToOrgMemberId
+        ? { contribution: { fundMember: { orgMemberId: filters.restrictToOrgMemberId } } }
+        : {}),
     };
     return prisma.payment.findMany({
       where,
-      select: PAYMENT_SELECT,
+      select: PAYMENT_HISTORY_SELECT,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findById(orgId: string, paymentId: string) {
+  async findById(orgId: string, paymentId: string, restrictToOrgMemberId?: string) {
     const payment = await prisma.payment.findFirst({
-      where: { id: paymentId, organizationId: orgId },
+      where: {
+        id: paymentId,
+        organizationId: orgId,
+        ...(restrictToOrgMemberId ? { contribution: { fundMember: { orgMemberId: restrictToOrgMemberId } } } : {}),
+      },
       select: { ...PAYMENT_SELECT, rawPayload: true },
     });
     if (!payment) throw new AppError(404, 'Payment not found');

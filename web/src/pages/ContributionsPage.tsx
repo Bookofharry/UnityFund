@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { contributionsApi, Contribution } from '../api/contributions';
+import { paymentsApi } from '../api/payments';
 import { formatKobo, formatDate } from '../lib/format';
 import { LoadingState, ErrorState, EmptyState } from '../components/QueryStates';
 import { useToast, getErrorMessage } from '../context/ToastContext';
@@ -14,14 +15,61 @@ const STATUS_COLORS: Record<string, string> = {
   overdue: 'bg-red-100 text-red-600',
 };
 
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  successful: 'bg-green-100 text-green-700',
+  pending: 'bg-yellow-100 text-yellow-700',
+  initiated: 'bg-yellow-100 text-yellow-700',
+  pending_review: 'bg-blue-100 text-blue-700',
+  failed: 'bg-red-100 text-red-600',
+  reversed: 'bg-orange-100 text-orange-700',
+  cancelled: 'bg-gray-100 text-gray-500',
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  checkout: 'Checkout',
+  direct_debit: 'Direct Debit',
+};
+
+const RECENT_ATTEMPTS_LIMIT = 5;
+
 function isPayable(c: Contribution): boolean {
   return ['pending', 'partial', 'overdue'].includes(c.status) && c.collectionCycle.status === 'active';
+}
+
+function PaymentAttemptHistory({ orgId, contributionId }: { orgId: string; contributionId: string }) {
+  const { data: payments = [], isLoading } = useQuery({
+    queryKey: ['payment-history', orgId, contributionId],
+    queryFn: () => paymentsApi.list(orgId, { contributionId }),
+  });
+
+  if (isLoading) {
+    return <p className="mt-3 text-xs text-gray-400">Loading payment attempts…</p>;
+  }
+  if (payments.length === 0) {
+    return <p className="mt-3 text-xs text-gray-400">No payment attempts yet.</p>;
+  }
+
+  return (
+    <ul className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
+      {payments.slice(0, RECENT_ATTEMPTS_LIMIT).map((p) => (
+        <li key={p.id} className="flex items-center justify-between gap-3 text-xs">
+          <span className="text-gray-500">{PAYMENT_METHOD_LABELS[p.paymentMethod] ?? p.paymentMethod}</span>
+          <span className="font-medium text-gray-700">{formatKobo(p.amount)}</span>
+          <span className={`rounded-full px-2 py-0.5 font-medium ${PAYMENT_STATUS_COLORS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
+            {p.status.replace(/_/g, ' ')}
+          </span>
+          <span className="shrink-0 text-gray-400">{formatDate(p.paidAt ?? p.createdAt)}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function ContributionsPage() {
   const { activeOrg } = useAuth();
   const toast = useToast();
   const isElevated = hasRole(activeOrg?.role, FINANCE_ROLES);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data: contributions = [], isLoading, isError } = useQuery({
     queryKey: ['contributions', activeOrg?.id],
@@ -34,7 +82,11 @@ export function ContributionsPage() {
       contributionsApi.initiatePayment(activeOrg!.id, contributionId, { paymentMethod: 'checkout' }),
     onSuccess: (data) => {
       if (data.checkoutUrl) {
-        window.open(data.checkoutUrl, '_blank');
+        // Same tab, not a new one — Nomba redirects back to /payments/callback,
+        // which is built to catch that return trip and show the result.
+        // Opening in a new tab strands that callback page somewhere the user
+        // has to go find instead of just landing on it.
+        window.location.href = data.checkoutUrl;
       } else {
         toast.error('Payment could not be initiated. Please try again.');
       }
@@ -124,10 +176,10 @@ export function ContributionsPage() {
                     {isPayable(c) && (
                       <button
                         onClick={() => payMutation.mutate(c.id)}
-                        disabled={payMutation.isPending}
+                        disabled={payMutation.isPending && payMutation.variables === c.id}
                         className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
                       >
-                        Pay
+                        {payMutation.isPending && payMutation.variables === c.id ? 'Opening…' : 'Pay'}
                       </button>
                     )}
                   </td>
@@ -180,13 +232,26 @@ export function ContributionsPage() {
                   {isPayable(c) && (
                     <button
                       onClick={() => payMutation.mutate(c.id)}
-                      disabled={payMutation.isPending}
+                      disabled={payMutation.isPending && payMutation.variables === c.id}
                       className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
                     >
-                      {payMutation.isPending ? 'Opening…' : `Pay ${formatKobo(c.expectedAmount - c.paidAmount)}`}
+                      {payMutation.isPending && payMutation.variables === c.id
+                        ? 'Opening…'
+                        : `Pay ${formatKobo(c.expectedAmount - c.paidAmount)}`}
                     </button>
                   )}
                 </div>
+
+                <button
+                  onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                  className="mt-3 text-xs font-medium text-indigo-600 hover:underline"
+                >
+                  {expandedId === c.id ? 'Hide payment history' : 'Show payment history'}
+                </button>
+
+                {expandedId === c.id && (
+                  <PaymentAttemptHistory orgId={activeOrg!.id} contributionId={c.id} />
+                )}
               </div>
             ))}
           </div>
