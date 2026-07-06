@@ -1,10 +1,10 @@
 # User Roles
 
 Status: Draft
-Version: 1.0
+Version: 1.1
 Project: UnityFund
 Team: Zero Downtime
-Last Updated: 2026-06-27
+Last Updated: 2026-07-06
 
 ---
 
@@ -38,9 +38,6 @@ Organization Admin
         │
         ▼
 Treasurer
-        │
-        ▼
-Approver
         │
         ▼
 Member
@@ -87,6 +84,7 @@ The Organization Admin is responsible for managing an organization's activities 
 * Start collection cycles.
 * Assign organizational roles.
 * Access reports.
+* Approve or reject payout requests.
 
 ## Restrictions
 
@@ -114,25 +112,6 @@ Treasurers cannot alter organization ownership or platform settings.
 
 ---
 
-# Approver
-
-## Purpose
-
-The Approver authorizes financial actions that require organizational approval.
-
-## Responsibilities
-
-* Review payout requests.
-* Approve or reject financial requests.
-* Provide approval comments.
-* Maintain accountability.
-
-## Restrictions
-
-Approvers cannot execute payments unless they also hold the Treasurer role.
-
----
-
 # Member
 
 ## Purpose
@@ -155,18 +134,18 @@ Members cannot modify organizational settings, create funds, or approve financia
 
 # Permission Matrix
 
-| Action               | Platform Admin | Organization Admin | Treasurer |  Approver |  Member  |
-| -------------------- | :------------: | :----------------: | :-------: | :-------: | :------: |
-| Manage platform      |        ✓       |          ✗         |     ✗     |     ✗     |     ✗    |
-| Manage organization  |        ✓       |          ✓         |     ✗     |     ✗     |     ✗    |
-| Create funds         |        ✗       |          ✓         |     ✗     |     ✗     |     ✗    |
-| Configure fund rules |        ✗       |          ✓         |     ✗     |     ✗     |     ✗    |
-| Invite members       |        ✗       |          ✓         |     ✗     |     ✗     |     ✗    |
-| View contributions   |        ✓       |          ✓         |     ✓     |     ✓     | Own only |
-| Make contributions   |        ✗       |          ✗         |     ✓*    |     ✗     |     ✓    |
-| Initiate payouts     |        ✗       |          ✓         |     ✓     |     ✗     |     ✗    |
-| Approve payouts      |        ✗       |          ✓         |     ✗     |     ✓     |     ✗    |
-| View reports         |        ✓       |          ✓         |     ✓     | View only | Own only |
+| Action               | Platform Admin | Organization Admin | Treasurer |  Member  |
+| -------------------- | :------------: | :----------------: | :-------: | :------: |
+| Manage platform      |        ✓       |          ✗         |     ✗     |     ✗    |
+| Manage organization  |        ✓       |          ✓         |     ✗     |     ✗    |
+| Create funds         |        ✗       |          ✓         |     ✗     |     ✗    |
+| Configure fund rules |        ✗       |          ✓         |     ✗     |     ✗    |
+| Invite members       |        ✗       |          ✓         |     ✗     |     ✗    |
+| View contributions   |        ✓       |          ✓         |     ✓     | Own only |
+| Make contributions   |        ✗       |          ✗         |     ✓*    |     ✓    |
+| Initiate payouts     |        ✗       |          ✓         |     ✓     |     ✗    |
+| Approve payouts      |        ✗       |          ✓         |     ✗     |     ✗    |
+| View reports         |        ✓       |          ✓         |     ✓     | Own only |
 
 * A Treasurer may also be a participating member, depending on the organization's policies.
 

@@ -97,7 +97,6 @@ Typical roles include:
 
 - Member
 - Treasurer
-- Approver
 - Organization Administrator
 - Platform Administrator
 

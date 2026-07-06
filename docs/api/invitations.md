@@ -103,7 +103,6 @@ Supported roles for invitation:
 ```txt
 member
 treasurer
-approver
 organization_admin
 ```
 

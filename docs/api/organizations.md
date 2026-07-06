@@ -233,13 +233,13 @@ Status meanings:
 
 ## Authorization Rules
 
-| Action               | Required Role                           |
-| -------------------- | --------------------------------------- |
-| Create organization  | Authenticated user                      |
-| View organization    | Organization member                     |
-| Update organization  | Organization admin                      |
-| View dashboard       | Organization admin, treasurer, approver |
-| Archive organization | Organization admin or platform admin    |
+| Action               | Required Role                        |
+| -------------------- | ------------------------------------- |
+| Create organization  | Authenticated user                    |
+| View organization    | Organization member                   |
+| Update organization  | Organization admin                    |
+| View dashboard       | Organization admin, treasurer         |
+| Archive organization | Organization admin or platform admin  |
 
 ---
 

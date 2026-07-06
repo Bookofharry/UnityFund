@@ -1,10 +1,26 @@
 # ADR-004: Role-Based Access Control (RBAC)
 
 Status: Accepted
-Version: 1.0.0
+Version: 1.1.0
 Project: UnityFund
 Team: Zero Downtime
-Last Updated: 2026-06-27
+Last Updated: 2026-07-06
+
+---
+
+# Amendment (v1.1.0, 2026-07-06)
+
+The **Approver** role has been removed. Its sole responsibility — approving
+payout requests — is now held by Organization Administrator (and Platform
+Administrator). In practice, Org Admin already had this permission alongside
+Approver, so the segregation this role provided (Treasurer creates/executes,
+someone else approves) is preserved by requiring the approving admin to be a
+different person from the treasurer who initiated the payout in practice,
+without a dedicated role to enforce it in code.
+
+This section is left in place rather than rewritten so the original
+reasoning stays visible; the "Default Roles" list below reflects the
+current (post-amendment) state.
 
 ---
 
@@ -26,8 +42,7 @@ For example:
 
 * Members make contributions.
 * Treasurers monitor collections and manage payouts.
-* Approvers review payout requests.
-* Organization Administrators manage organizations, funds, and members.
+* Organization Administrators manage organizations, funds, members, and approve payout requests.
 * Platform Administrators manage the UnityFund platform itself.
 
 Granting permissions directly to individual users would become difficult to manage and audit as organizations grow.
@@ -94,15 +109,6 @@ Responsibilities:
 
 ---
 
-### Approver
-
-Responsibilities:
-
-* Review payout requests
-* Approve or reject payouts according to organization policies
-
----
-
 ### Organization Administrator
 
 Responsibilities:
@@ -112,6 +118,7 @@ Responsibilities:
 * Create and manage funds
 * Configure fund rules
 * Assign organization roles
+* Review and approve or reject payout requests
 
 ---
 

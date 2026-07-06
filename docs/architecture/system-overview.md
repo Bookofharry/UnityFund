@@ -63,7 +63,6 @@ The frontend provides dashboards and workflows for:
 
 * Organization admins
 * Treasurers
-* Approvers
 * Members
 
 It communicates with the backend through secure APIs.

@@ -155,14 +155,14 @@ Approves a payout that requires authorization.
 
 Business Process:
 
-* Verify approver permissions.
+* Verify approval permissions.
 * Record approval.
 * Determine whether all required approvals have been received.
 
 Authorization:
 
-* Approver
-* Organization Admin (where applicable)
+* Organization Admin
+* Platform Admin
 
 ---
 
@@ -235,13 +235,13 @@ Payout will not proceed.
 
 ## Authorization Matrix
 
-| Action            | Member | Approver | Treasurer | Organization Admin |
-| ----------------- | :----: | :------: | :-------: | :----------------: |
-| View Own Payouts* |    ✓   |     ✓    |     ✓     |          ✓         |
-| View All Payouts  |    ✗   |     ✓    |     ✓     |          ✓         |
-| Request Payout**  |    ✓   |     ✓    |     ✓     |          ✓         |
-| Approve Payout    |    ✗   |     ✓    |     ✗     |          ✓         |
-| Execute Payout    |    ✗   |     ✗    |     ✓     |          ✓         |
+| Action            | Member | Treasurer | Organization Admin |
+| ----------------- | :----: | :-------: | :----------------: |
+| View Own Payouts* |    ✓   |     ✓     |          ✓         |
+| View All Payouts  |    ✗   |     ✓     |          ✓         |
+| Request Payout**  |    ✓   |     ✓     |          ✓         |
+| Approve Payout    |    ✗   |     ✗     |          ✓         |
+| Execute Payout    |    ✗   |     ✓     |          ✓         |
 
 * Where applicable to the fund type.
 

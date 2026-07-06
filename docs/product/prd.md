@@ -65,7 +65,6 @@ Community groups
 Platform Admin
 Organization Admin
 Treasurer
-Approver
 Member
 
 Each role has different permissions and responsibilities.
