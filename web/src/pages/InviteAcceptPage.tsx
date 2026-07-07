@@ -52,7 +52,7 @@ export function InviteAcceptPage() {
 
       const res = await invitationsApi.accept(token!, payload);
       const updated = await authApi.me();
-      setSession(updated, res.accessToken);
+      setSession(updated, res.accessToken, res.refreshToken);
       setState('done');
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err: unknown) {

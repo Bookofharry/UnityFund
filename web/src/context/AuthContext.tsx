@@ -5,7 +5,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  setSession: (user: User, accessToken: string) => void;
+  setSession: (user: User, accessToken: string, refreshToken?: string) => void;
   clearSession: () => void;
   logout: () => void;
   activeOrg: { id: string; name: string; role: string } | null;
@@ -35,8 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }).finally(() => setLoading(false));
   }, []);
 
-  const setSession = useCallback((u: User, accessToken: string) => {
+  const setSession = useCallback((u: User, accessToken: string, refreshToken?: string) => {
     localStorage.setItem('access_token', accessToken);
+    if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
     setUser(u);
     const orgs = u.orgMemberships ?? u.memberships ?? [];
     if (orgs.length > 0) {
@@ -46,8 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { accessToken } = await authApi.login(email, password);
+    const { accessToken, refreshToken } = await authApi.login(email, password);
     localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
     const u = await authApi.me();
     setSession(u, accessToken);
     return u;
@@ -55,11 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearSession = useCallback(() => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setUser(null);
     setActiveOrg(null);
   }, []);
 
   const logout = useCallback(() => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    // Revoke server-side, but don't block the redirect on it — logout must
+    // always succeed locally even if this request fails.
+    authApi.logout(refreshToken).catch(() => {});
     clearSession();
     window.location.href = '/login';
   }, [clearSession]);

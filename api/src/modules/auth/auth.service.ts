@@ -13,6 +13,22 @@ import type {
 } from './auth.dto';
 
 export class AuthService {
+  // Opaque, hashed, DB-backed — same pattern as PasswordResetToken. Rotated
+  // on every refresh (see refresh() below), so a stolen-and-already-used
+  // token can't be replayed. Public: invitation.controller.ts's accept()
+  // flow mints its own access token outside login/register and needs one too.
+  async issueRefreshToken(userId: string): Promise<string> {
+    const rawToken = generateSecureToken();
+    const tokenHash = sha256(rawToken);
+    const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+
+    await prisma.refreshToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+
+    return rawToken;
+  }
+
   async register(data: RegisterDtoType) {
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
     if (existing) {
@@ -33,8 +49,9 @@ export class AuthService {
     });
 
     const accessToken = signAccessToken({ sub: user.id, email: user.email });
+    const refreshToken = await this.issueRefreshToken(user.id);
 
-    return { user, accessToken };
+    return { user, accessToken, refreshToken };
   }
 
   async login(data: LoginDtoType) {
@@ -56,6 +73,7 @@ export class AuthService {
     }
 
     const accessToken = signAccessToken({ sub: user.id, email: user.email });
+    const refreshToken = await this.issueRefreshToken(user.id);
 
     return {
       user: {
@@ -65,7 +83,55 @@ export class AuthService {
         lastName: user.lastName,
       },
       accessToken,
+      refreshToken,
     };
+  }
+
+  async refresh(rawToken: string) {
+    const tokenHash = sha256(rawToken);
+    const record = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+    if (!record || record.revokedAt || record.expiresAt < new Date()) {
+      throw new AppError(401, 'Invalid or expired refresh token');
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: record.userId } });
+    if (!user || user.status !== 'active') {
+      throw new AppError(403, 'Account is inactive');
+    }
+
+    // Rotate: revoke the token just used, issue a fresh pair. Runs as a
+    // transaction so a crash between the two can't leave a valid token
+    // revoked with nothing to replace it.
+    const [, accessToken, refreshToken] = await prisma.$transaction(async (tx) => {
+      await tx.refreshToken.update({
+        where: { id: record.id },
+        data: { revokedAt: new Date() },
+      });
+
+      const newRawToken = generateSecureToken();
+      await tx.refreshToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: sha256(newRawToken),
+          expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      return [null, signAccessToken({ sub: user.id, email: user.email }), newRawToken] as const;
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async logout(rawToken?: string): Promise<void> {
+    if (!rawToken) return;
+    const tokenHash = sha256(rawToken);
+    // Silent no-op if it doesn't match anything — logout should never error.
+    await prisma.refreshToken.updateMany({
+      where: { tokenHash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   async getMe(userId: string) {

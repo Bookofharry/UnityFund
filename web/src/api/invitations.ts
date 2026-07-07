@@ -26,7 +26,7 @@ export const invitationsApi = {
     api.get<{ invitation: InviteValidation }>(`/invitations/${token}`).then((r) => r.data.invitation),
 
   accept: (token: string, data?: { firstName?: string; lastName?: string; password?: string }) =>
-    api.post<{ message: string; accessToken: string; membership: { id: string; role: string }; isNewUser: boolean }>(
+    api.post<{ message: string; accessToken: string; refreshToken: string; membership: { id: string; role: string }; isNewUser: boolean }>(
       `/invitations/${token}/accept`, data ?? {},
     ).then((r) => r.data),
 

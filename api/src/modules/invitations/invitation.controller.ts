@@ -3,6 +3,7 @@ import { invitationService } from './invitation.service';
 import { verifyAccessToken } from '../../lib/jwt';
 import { signAccessToken } from '../../lib/jwt';
 import { prisma } from '../../lib/prisma';
+import { authService } from '../auth/auth.service';
 
 const params = (req: Request) => req.params as Record<string, string>;
 
@@ -40,10 +41,12 @@ export const invitationController = {
       });
 
       const accessToken = signAccessToken({ sub: result.userId, email: user!.email });
+      const refreshToken = await authService.issueRefreshToken(result.userId);
 
       res.json({
         message: 'Invitation accepted',
         accessToken,
+        refreshToken,
         user,
         membership: result.membership,
         isNewUser: result.isNewUser,

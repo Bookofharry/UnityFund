@@ -179,6 +179,7 @@ model User {
 
   orgMemberships      OrgMember[]
   passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
   notifications       Notification[]
   sentInvitations     Invitation[]        @relation("InvitedBy")
   auditLogs           AuditLog[]
@@ -492,6 +493,23 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id])
 
   @@map("password_reset_tokens")
+}
+
+// Long-lived refresh tokens backing the 15-minute access token — same
+// hashed-opaque-token pattern as PasswordResetToken. Rotated on every use:
+// each successful refresh revokes the token it was given and issues a new
+// one, so a stolen-and-already-used token can't be replayed.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
 }
 
 // ─── ADR-011 Fix 6: Bank accounts for payout transfers ───────────────────────

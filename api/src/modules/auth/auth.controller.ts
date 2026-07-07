@@ -20,9 +20,22 @@ export const authController = {
     }
   },
 
-  async logout(_req: Request, res: Response): Promise<void> {
-    // JWT is stateless — client discards the token
-    res.json({ message: 'Logged out successfully' });
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.logout(req.body?.refreshToken);
+      res.json({ message: 'Logged out successfully' });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await authService.refresh(req.body.refreshToken);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
   },
 
   async me(req: Request, res: Response, next: NextFunction): Promise<void> {

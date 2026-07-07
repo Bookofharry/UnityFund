@@ -20,12 +20,15 @@ export interface User {
 
 export const authApi = {
   register: (data: { email: string; password: string; firstName: string; lastName: string }) =>
-    api.post<{ user: User; accessToken: string }>('/auth/register', data).then((r) => r.data),
+    api.post<{ user: User; accessToken: string; refreshToken: string }>('/auth/register', data).then((r) => r.data),
 
   login: (email: string, password: string) =>
-    api.post<{ user: User; accessToken: string }>('/auth/login', { email, password }).then((r) => r.data),
+    api.post<{ user: User; accessToken: string; refreshToken: string }>('/auth/login', { email, password }).then((r) => r.data),
 
   me: () => api.get<{ user: User }>('/auth/me').then((r) => r.data.user),
+
+  logout: (refreshToken: string | null) =>
+    api.post('/auth/logout', { refreshToken }).then((r) => r.data),
 
   requestReset: (email: string) =>
     api.post('/auth/password-reset/request', { email }).then((r) => r.data),

@@ -28,8 +28,8 @@ export function RegisterPage() {
   const onSubmit = async (data: Fields) => {
     setServerError('');
     try {
-      const { user, accessToken } = await authApi.register(data);
-      setSession(user, accessToken);
+      const { user, accessToken, refreshToken } = await authApi.register(data);
+      setSession(user, accessToken, refreshToken);
       navigate('/onboarding');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Registration failed';
