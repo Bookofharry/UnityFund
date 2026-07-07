@@ -60,13 +60,12 @@ UnityFund supports seven distinct fund types, each with its own lifecycle and bu
 
 ## User Roles
 
-Access within each organization is governed by five roles:
+Access within each organization is governed by four roles:
 
 | Role | Key Responsibilities |
 |---|---|
-| **Organization Admin** | Create funds, configure rules, invite members, start cycles, access reports |
-| **Treasurer** | Monitor contributions, initiate approved payouts, generate financial reports |
-| **Approver** | Review and approve or reject payout requests |
+| **Organization Admin** | Create funds, configure rules, invite members, start cycles, access reports, approve or reject payout requests |
+| **Treasurer** | Monitor contributions, initiate and execute approved payouts, generate financial reports |
 | **Member** | Make contributions, view personal contribution history, manage bank accounts and mandates |
 | **Platform Admin** | UnityFund team — platform-level visibility and support |
 
@@ -162,8 +161,7 @@ The seed creates a demo organization — **Lagos Teachers Cooperative** — with
 | Platform Admin | platform@unityfund.dev | Platform Admin |
 | Harry Admin | admin@unityfund.dev | Organization Admin |
 | Chioma | treasurer@unityfund.dev | Treasurer |
-| Emeka | approver@unityfund.dev | Approver |
-| Amaka, Tunde, Ngozi | amaka / tunde / ngozi @unityfund.dev | Member |
+| Emeka, Amaka, Tunde, Ngozi | approver / amaka / tunde / ngozi @unityfund.dev | Member |
 
 **Password for all accounts:** `Password123!`
 
