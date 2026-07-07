@@ -123,51 +123,56 @@ export function AppShell() {
         <SidebarContent navItems={navItems} pathname={pathname} user={user} activeOrg={activeOrg} logout={logout} />
       </aside>
 
-      {/* Mobile / tablet drawer */}
+      {/* Mobile / tablet drawer — overlay and drawer are separate direct
+          children of AnimatePresence (not merged into one Fragment child),
+          otherwise the exit animation can hang and leave the drawer stuck
+          open in the DOM even after mobileNavOpen flips to false. */}
       <AnimatePresence>
         {mobileNavOpen && (
-          <>
-            <motion.div
-              key="overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-              onClick={() => setMobileNavOpen(false)}
-              aria-hidden="true"
+          <motion.div
+            key="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={() => setMobileNavOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.aside
+            key="drawer"
+            id="mobile-sidebar"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed left-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl lg:hidden"
+          >
+            <div className="flex items-center justify-end px-3 py-3">
+              <button
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close menu"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            <SidebarContent
+              navItems={navItems}
+              pathname={pathname}
+              user={user}
+              activeOrg={activeOrg}
+              logout={logout}
+              onNavigate={() => setMobileNavOpen(false)}
             />
-            <motion.aside
-              key="drawer"
-              id="mobile-sidebar"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation menu"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl lg:hidden"
-            >
-              <div className="flex items-center justify-end px-3 py-3">
-                <button
-                  onClick={() => setMobileNavOpen(false)}
-                  aria-label="Close menu"
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
-                >
-                  <X className="h-5 w-5" aria-hidden="true" />
-                </button>
-              </div>
-              <SidebarContent
-                navItems={navItems}
-                pathname={pathname}
-                user={user}
-                activeOrg={activeOrg}
-                logout={logout}
-                onNavigate={() => setMobileNavOpen(false)}
-              />
-            </motion.aside>
-          </>
+          </motion.aside>
         )}
       </AnimatePresence>
 
