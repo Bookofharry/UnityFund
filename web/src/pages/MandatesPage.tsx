@@ -70,7 +70,7 @@ export function MandatesPage() {
         8000,
       );
     },
-    onError: (e: Error) => setFormError(e.message),
+    onError: (err) => setFormError(getErrorMessage(err, 'Failed to set up mandate.')),
   });
 
   const suspendMutation = useMutation({
@@ -213,8 +213,8 @@ export function MandatesPage() {
         ) : mandates.length === 0 ? (
           <EmptyState message="No mandates yet. Set up a direct debit mandate to enable automatic contributions." />
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th scope="col" className="px-4 py-3 text-left font-medium text-gray-500">Max Amount</th>

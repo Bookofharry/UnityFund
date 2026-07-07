@@ -604,8 +604,8 @@ function FundMembersSection({ orgId, fundId, fundType }: { orgId: string; fundId
         ) : fundMembers.length === 0 ? (
           <p className="text-sm text-gray-400">No members enrolled in this fund yet.</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full min-w-[500px] text-sm">
               <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th scope="col" className="px-4 py-3 text-left font-medium text-gray-500">Name</th>

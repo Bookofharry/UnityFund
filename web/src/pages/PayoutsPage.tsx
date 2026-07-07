@@ -81,8 +81,8 @@ export function PayoutsPage() {
       ) : payouts.length === 0 ? (
         <EmptyState message="No payouts yet. Payouts are created automatically when collection cycles close." />
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
                 <th scope="col" className="px-4 py-3 text-left font-medium text-gray-500">Recipient</th>

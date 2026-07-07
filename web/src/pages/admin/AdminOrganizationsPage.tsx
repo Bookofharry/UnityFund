@@ -20,8 +20,8 @@ export function AdminOrganizationsPage() {
       ) : organizations.length === 0 ? (
         <EmptyState message="No organizations yet." />
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
-          <table className="w-full text-sm text-slate-200">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-slate-700 bg-slate-800">
+          <table className="w-full min-w-[600px] text-sm text-slate-200">
             <thead className="border-b border-slate-700 bg-slate-900/50">
               <tr>
                 <th scope="col" className="px-4 py-3 text-left font-medium text-slate-400">Name</th>
