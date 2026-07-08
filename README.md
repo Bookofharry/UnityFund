@@ -8,6 +8,26 @@ Built for the **DevCareer × Nomba Hackathon 2026** by Team Zero Downtime.
 
 ---
 
+## 🔗 Live Demo & Reviewer Access
+
+- **Live app**: [unity-fund-jade.vercel.app](https://unity-fund-jade.vercel.app)
+- **GitHub repo**: [github.com/Bookofharry/UnityFund](https://github.com/Bookofharry/UnityFund)
+
+No signup needed — log in directly with any of these seeded accounts (all use the same password):
+
+| Role | Email | Password |
+|---|---|---|
+| Organization Admin | `admin@unityfund.dev` | `Password123!` |
+| Treasurer | `treasurer@unityfund.dev` | `Password123!` |
+| Member | `amaka@unityfund.dev` | `Password123!` |
+| Member | `tunde@unityfund.dev` | `Password123!` |
+| Member | `ngozi@unityfund.dev` | `Password123!` |
+| Platform Admin (separate login at `/admin/login`) | `platform@unityfund.dev` | `Password123!` |
+
+The seeded organization ("Lagos Teachers Cooperative") already has funds, rules, and enrolled members configured — see [docs/pitch/demo-day-checklist.md](docs/pitch/demo-day-checklist.md) for the safest walkthrough path.
+
+---
+
 ## The Problem
 
 Across Nigeria and Africa, thousands of member-based organizations — cooperative societies, welfare associations, alumni groups, professional bodies — manage shared finances through a combination of Excel spreadsheets, WhatsApp reminders, bank alerts, and manual reconciliation.
